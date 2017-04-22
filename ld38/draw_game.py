@@ -9,6 +9,9 @@ C_FLOOR = '#666666'
 C_DEBUG = '#ff00ff'
 C_STAIRS_UP = '#ff6600'
 C_STAIRS_DOWN = '#ffff00'
+C_TRANSITION_1_2 = '#00ff00'
+C_TRANSITION_2_3 = '#00ff88'
+C_TRANSITION_3_4 = '#00ffff'
 
 C_PLAYER = '#ffffff'
 C_VERP = '#ff0000'
@@ -30,7 +33,6 @@ def draw_game(gamestate, ctx=terminal):
       char = '.'
       color = C_FLOOR
     if cell.terrain == EnumTerrain.WALL:
-      char = '#'
       if 'horz' in cell.annotations:
         char = line_chars['T']
       if 'vert' in cell.annotations:
@@ -50,6 +52,13 @@ def draw_game(gamestate, ctx=terminal):
     if cell.terrain == EnumTerrain.CORRIDOR:
       color = C_FLOOR
       char = "#"
+
+      if 'transition-1-2' in cell.annotations:
+        color = C_TRANSITION_1_2
+      if 'transition-2-3' in cell.annotations:
+        color = C_TRANSITION_2_3
+      if 'transition-3-4' in cell.annotations:
+        color = C_TRANSITION_3_4
 
     if cell.debug_character:
       color = C_DEBUG
