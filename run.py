@@ -1,15 +1,10 @@
 #!/usr/bin/env python
-import random
-import string
 from enum import Enum
 
 from clubsandwich.blt.nice_terminal import terminal
-from clubsandwich.blt.state import blt_state
-from clubsandwich.director import DirectorLoop, Scene
-from clubsandwich.geom import Rect, Point, Size
-from clubsandwich.draw import LINE_STYLES
-from clubsandwich.generators import RandomBSPTree
-from clubsandwich.tilemap import TileMap, CellOutOfBoundsError
+from clubsandwich.director import DirectorLoop
+from clubsandwich.geom import Size
+from clubsandwich.tilemap import TileMap
 from clubsandwich.ui import (
   LabelView,
   ButtonView,
@@ -22,6 +17,9 @@ from clubsandwich.ui import (
   SingleLineTextInputView,
   IntStepperView,
 )
+
+from ld38.level_generator import generate_dungeon
+from ld38.draw_tilemap import draw_tilemap
 
 
 LOGO = """
@@ -67,133 +65,6 @@ class MainMenuScene(UIScene):
 ### Game ###
 
 
-class EnumTerrain(Enum):
-  EMPTY = 0
-  FLOOR = 1
-  WALL = 2
-  DOOR_CLOSED = 3
-  DOOR_OPEN = 4
-  CORRIDOR = 5
-
-
-class Room:
-  def __init__(self, rect):
-    self.rect = rect
-
-
-def generate_room(bsp_leaf):
-  """Decorate *bsp_leaf* with a :py:class:`Room` object"""
-  bsp_leaf.data['room'] = Room(bsp_leaf.rect.get_random_rect(Size(4, 4)))
-  return bsp_leaf.data['room']
-
-
-def generate_random_path(tilemap, rect1, rect2):
-  start = rect1.get_random_point()
-  end = rect2.get_random_point()
-  points_in_path = set()
-  doors = set()
-  corridors = set()
-  for point in start.path_L_to(end):
-    points_in_path.add(point)
-    has_corridor_neighbor = False
-    for neighbor in point.neighbors:
-      if neighbor in points_in_path:
-        continue
-      try:
-        has_corridor_neighbor = tilemap.cell(neighbor).terrain == EnumTerrain.CORRIDOR
-      except CellOutOfBoundsError:
-        pass
-      if has_corridor_neighbor:
-        continue
-    cell = tilemap.cell(point)
-    if cell.terrain == EnumTerrain.WALL:
-      doors.add(cell)
-    elif (cell.terrain == EnumTerrain.EMPTY or not cell.terrain) and not has_corridor_neighbor:
-      corridors.add(cell)
-  return (doors, corridors)
-
-
-
-def generate_dungeon(tilemap):
-  generator = RandomBSPTree(tilemap.size, 4)
-
-  rooms = [generate_room(leaf) for leaf in generator.root.leaves]
-
-  for room in rooms:
-    for corner in room.rect.points_corners:
-      tilemap.cell(corner).terrain = EnumTerrain.WALL
-    tilemap.cell(room.rect.origin).annotations.add('corner_top_left')
-    tilemap.cell(room.rect.point_top_right).annotations.add('corner_top_right')
-    tilemap.cell(room.rect.point_bottom_left).annotations.add('corner_bottom_left')
-    tilemap.cell(room.rect.point_bottom_right).annotations.add('corner_bottom_right')
-
-    for point in room.rect.points_top:
-      tilemap.cell(point).terrain = EnumTerrain.WALL
-      tilemap.cell(point).annotations.add('horz')
-    for point in room.rect.points_bottom:
-      tilemap.cell(point).terrain = EnumTerrain.WALL
-      tilemap.cell(point).annotations.add('horz')
-    for point in room.rect.points_left:
-      tilemap.cell(point).terrain = EnumTerrain.WALL
-      tilemap.cell(point).annotations.add('vert')
-    for point in room.rect.points_right:
-      tilemap.cell(point).terrain = EnumTerrain.WALL
-      tilemap.cell(point).annotations.add('vert')
-    for point in room.rect.with_inset(1).points:
-      tilemap.cell(point).terrain = EnumTerrain.FLOOR
-
-  for (a, b) in generator.root.sibling_pairs:
-    a = a.leftmost_leaf
-    b = b.rightmost_leaf
-    (doors, corridors) = generate_random_path(
-      tilemap,
-      a.data['room'].rect.with_inset(1),
-      b.data['room'].rect.with_inset(1))
-    iter_count = 0
-    while len(doors) > 4 and iter_count < 10:
-      iter_count += 1
-      (doors, corridors) = generate_random_path(
-        tilemap,
-        a.data['room'].rect.with_inset(1),
-        b.data['room'].rect.with_inset(1))
-    for door in doors:
-      door.terrain = EnumTerrain.DOOR_CLOSED
-    for corridor in corridors:
-      corridor.terrain = EnumTerrain.CORRIDOR
-
-
-def draw_tilemap(tilemap, ctx=terminal):
-  line_chars = LINE_STYLES['single']
-  for cell in tilemap.cells:
-    char = ' '
-    color = '#ffffff'
-    if cell.terrain == EnumTerrain.FLOOR:
-      char = '.'
-      color = '#666666'
-    if cell.terrain == EnumTerrain.WALL:
-      char = '#'
-      if 'horz' in cell.annotations:
-        char = line_chars['T']
-      if 'vert' in cell.annotations:
-        char = line_chars['L']
-      if 'corner_top_left' in cell.annotations:
-        char = line_chars['TL']
-      if 'corner_top_right' in cell.annotations:
-        char = line_chars['TR']
-      if 'corner_bottom_left' in cell.annotations:
-        char = line_chars['BL']
-      if 'corner_bottom_right' in cell.annotations:
-        char = line_chars['BR']
-    if cell.terrain == EnumTerrain.DOOR_CLOSED:
-      char = '+'
-    if cell.terrain == EnumTerrain.DOOR_OPEN:
-      char = "'"
-    if cell.terrain == EnumTerrain.CORRIDOR:
-      char = "#"
-    if cell.debug_character:
-      char = cell.debug_character
-    ctx.color(color)
-    ctx.put(cell.point, char)
 
 
 class Entity:
