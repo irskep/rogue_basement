@@ -52,6 +52,16 @@ KEYS_AND_DIRECTIONS = [
   (KEYS_DR, Point(1, 1)),
 ]
 
+SIDEBAR_WIDTH = 21
+
+TEXT_HELP = """
+======= Keys =======
+Move: arrows, numpad
+      hjklyubn
+
+Close: c
+""".strip()
+
 
 class GameView(View):
   def __init__(self, gamestate, *args, **kwargs):
@@ -90,10 +100,14 @@ class GameScene(UIScene):
     self.gamestate = GameState()
     self.log_view = LabelView(
       text="", align_horz='left', color_bg='#333333',
-      layout_options=LayoutOptions.row_bottom(1).with_updates(left=20))
+      layout_options=LayoutOptions.row_bottom(1).with_updates(left=SIDEBAR_WIDTH))
+    help_view = LabelView(
+      text=TEXT_HELP, align_horz='left',
+      layout_options=LayoutOptions.column_left(SIDEBAR_WIDTH).with_updates(top=None, height=5))
     views = [
-      GameView(self.gamestate, layout_options=LayoutOptions().with_updates(left=20, bottom=1)),
-      StatsView(self.gamestate, layout_options=LayoutOptions.column_left(20)),
+      GameView(self.gamestate, layout_options=LayoutOptions().with_updates(left=SIDEBAR_WIDTH, bottom=1)),
+      StatsView(self.gamestate, layout_options=LayoutOptions.column_left(SIDEBAR_WIDTH)),
+      help_view,
       self.log_view,
     ]
     super().__init__(views, *args, **kwargs)
