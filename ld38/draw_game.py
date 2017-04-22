@@ -1,7 +1,10 @@
+from math import floor
+
 from .const import EnumTerrain, EnumFeature, EnumEntityKind
 
 from clubsandwich.blt.nice_terminal import terminal
 from clubsandwich.draw import LINE_STYLES
+from clubsandwich.geom import Rect, Point
 
 
 C_DEFAULT = '#ffffff'
@@ -17,7 +20,12 @@ C_PLAYER = '#ffffff'
 C_VERP = '#ff0000'
 
 
-def draw_game(gamestate, ctx=terminal):
+def draw_game(gamestate, bounds, ctx):
+  with ctx.translate(bounds.origin * -1):
+    #with ctx.crop_before_send(Rect(Point(0, 0), size)):
+    _draw_game(gamestate, bounds, ctx)
+
+def _draw_game(gamestate, bounds, ctx):
   line_chars = LINE_STYLES['single']
 
   entity_cache = {}
@@ -26,7 +34,11 @@ def draw_game(gamestate, ctx=terminal):
     if entity.position:
       entity_cache[entity.position] = entity
 
-  for cell in gamestate.active_level_state.level.tilemap.cells:
+  for point in bounds.points:
+    try:
+      cell = gamestate.active_level_state.level.tilemap.cell(point)
+    except IndexError:
+      continue
     char = ' '
     color = C_DEFAULT
     if cell.terrain == EnumTerrain.FLOOR:

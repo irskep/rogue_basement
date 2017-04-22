@@ -7,10 +7,14 @@ from clubsandwich.geom import Size, Point
 from clubsandwich.tilemap import TileMap
 
 from .level_generator import generate_dungeon
-from .const import EnumEntityKind, EnumEventNames
+from .const import EnumEntityKind, EnumEventNames, EnumTerrain
 
 
 LEVEL_SIZE = Size(160, 80)
+
+
+def get_is_terrain_passable(terrain):
+  return terrain in (EnumTerrain.FLOOR, EnumTerrain.CORRIDOR, EnumTerrain.DOOR_OPEN)
 
 
 class EventDispatcher:
@@ -130,7 +134,7 @@ class Entity:
 class Player(Entity):
   def __init__(self):
     super().__init__(EnumEntityKind.PLAYER)
-    self.stats = {}
+    self.stats = {'hp_max': 100}
     self.state = {'hp': 100}
 
 
@@ -184,8 +188,20 @@ class LevelState:
   ### actions ###
 
   def move(self, entity, position):
-    # TODO: uh lol there are walls and stuff
-    entity.position = position
+    cell = self.level.tilemap.cell(position)
+    if get_is_terrain_passable(cell.terrain):
+      entity.position = position
+      self.fire(EnumEventNames.entity_moved, data=entity, entity=entity)
+    elif cell.terrain == EnumTerrain.DOOR_CLOSED:
+      self.open_door(entity, position)
+    else:
+      self.fire(EnumEventNames.entity_bumped, data=cell, entity=entity)
+
+  def open_door(self, entity, position):
+    # this is where the logic goes for doors that are hard to open.
+    cell = self.level.tilemap.cell(position)
+    cell.terrain = EnumTerrain.DOOR_OPEN
+    self.fire(EnumEventNames.door_open, data=cell, entity=entity)
 
 
 class GameState:

@@ -3,6 +3,8 @@ from enum import Enum
 
 from clubsandwich.blt.nice_terminal import terminal
 from clubsandwich.director import DirectorLoop
+from clubsandwich.draw import draw_line_vert
+from clubsandwich.geom import Size, Point, Rect
 from clubsandwich.ui import (
   LabelView,
   ButtonView,
@@ -14,11 +16,16 @@ from clubsandwich.ui import (
   CyclingButtonView,
   SingleLineTextInputView,
   IntStepperView,
+  View,
 )
 
 from ld38.draw_game import draw_game
 from ld38.gamestate import GameState
 from ld38.const import EnumEventNames
+
+
+WINDOW_SIZE = Size(80, 32)
+HALF_WINDOW_SIZE = (Size(80, 25) / 2).floored
 
 
 LOGO = """
@@ -30,8 +37,9 @@ class GameLoop(DirectorLoop):
     super().terminal_init()
     terminal.set("""
     window.resizeable=true;
-    window.size=160x80;
-    """)
+    window.size={size.width}x{size.height};
+    font: NotoMono-Regular.ttf, size=10x16;
+    """.format(size=WINDOW_SIZE))
 
   def get_initial_scene(self):
     return GameScene()
@@ -65,11 +73,62 @@ class MainMenuScene(UIScene):
 ### Game ###
 
 
+class GameView(View):
+  def __init__(self, gamestate, *args, **kwargs):
+    self.gamestate = gamestate
+    super().__init__(*args, **kwargs)
+
+  def draw(self, ctx):
+    half_size = (self.bounds.size / 2).floored
+    draw_game(
+      self.gamestate,
+      bounds=Rect(
+        self.gamestate.active_level_state.player.position - half_size,
+        self.bounds.size),
+      ctx=ctx)
+
+
+class StatsView(View):
+  def __init__(self, gamestate, *args, **kwargs):
+    self.gamestate = gamestate
+    super().__init__(*args, **kwargs)
+    self.add_subview(LabelView(
+      text="Stats",
+      color_fg='#ffffff',
+      color_bg='#660000',
+      layout_options=LayoutOptions.row_top(1).with_updates(right=1)))
+
+
+  def draw(self, ctx):
+    draw_line_vert(Point(self.bounds.x2, self.bounds.y), self.bounds.height)
+
+
 class GameScene(UIScene):
   def __init__(self, *args, **kwargs):
-    views = []
     self.gamestate = GameState()
+    self.log_view = LabelView(
+      text="", align_horz='left', color_bg='#333333',
+      layout_options=LayoutOptions.row_bottom(1).with_updates(left=20))
+    views = [
+      GameView(self.gamestate, layout_options=LayoutOptions().with_updates(left=20, bottom=1)),
+      StatsView(self.gamestate, layout_options=LayoutOptions.column_left(20)),
+      self.log_view,
+    ]
     super().__init__(views, *args, **kwargs)
+
+    level_state = self.gamestate.active_level_state
+    level_state.dispatcher.add_subscriber(self, EnumEventNames.door_open, level_state.player)
+    level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_bumped, level_state.player)
+    level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_moved, level_state.player)
+
+  def on_entity_moved(self, data):
+    self.log_view.text = ""
+
+  def on_entity_bumped(self, data):
+    self.log_view.text = "Oof!"
+
+  def on_door_open(self, data):
+    self.log_view.text = "You open the door."
 
   def terminal_read(self, val):
     if val in (terminal.TK_UP, terminal.TK_K, terminal.TK_KP_8):
@@ -92,7 +151,6 @@ class GameScene(UIScene):
   def terminal_update(self, is_active=True):
     super().terminal_update(is_active)
     self.gamestate.active_level_state.consume_events()
-    draw_game(self.gamestate)
 
 
 if __name__ == '__main__':

@@ -42,3 +42,7 @@ class EnumEventNames(Enum):
   move_ur = "move_ur"
   move_dl = "move_dl"
   move_dr = "move_dr"
+
+  entity_moved = "entity_moved"
+  entity_bumped = "entity_bumped"
+  door_open = "door_open"
