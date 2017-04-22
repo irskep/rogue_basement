@@ -1,43 +1,64 @@
 from uuid import uuid4
 
-from clubsandwich.geom import Size
+from clubsandwich.geom import Size, Point
 from clubsandwich.tilemap import TileMap
-from ld38.level_generator import generate_dungeon
+from .level_generator import generate_dungeon
+from .const import EnumEntityKind
 
 
 LEVEL_SIZE = Size(80, 25)
 
 
 class Entity:
-  def __init__(self):
+  def __init__(self, kind):
+    self.kind = kind
     self.stats = {}
     self.state = {}
     self.position = None
-    self.is_player = False
+
+
+class Player(Entity):
+  def __init__(self):
+    super().__init__(EnumEntityKind.PLAYER)
+    self.stats = {}
+    self.state = {'hp': 100}
 
 
 class Level:
   def __init__(self):
     self.tilemap = TileMap(LEVEL_SIZE)
-    generate_dungeon(self.tilemap)
+    self.points_of_interest = generate_dungeon(self.tilemap)
+
+
+class LevelState:
+  def __init__(self, level):
     self.uuid = uuid4().hex
+    self.level = level
+    self.entities = []
+
+    self.player = Player()
+    self.player.position = self.level.points_of_interest['stairs_up']
+    self.add_entity(self.player)
+  
+  def add_entity(self, entity):
+    self.entities.append(entity)
+  
+  def remove_entity(self, entity):
+    self.entities.remove(entity)
 
 
 class GameState:
   def __init__(self):
     self.turn_number = 0
-    self.active_world_id = None
-    self.player = Entity()
-    self.player.stats = {}
-    self.player.state = {'hp': 100}
-    self.levels_by_id = {}
-    self.active_level_id = self.add_level().uuid
+    self.level_states_by_id = {}
+
+    self.active_id = self.add_level().uuid
 
   @property
-  def active_level(self):
-    return self.levels_by_id[self.active_level_id]
+  def active_level_state(self):
+    return self.level_states_by_id[self.active_id]
 
   def add_level(self):
-    level = Level()
-    self.levels_by_id[level.uuid] = level
-    return level
+    level_state = LevelState(Level())
+    self.level_states_by_id[level_state.uuid] = level_state
+    return level_state

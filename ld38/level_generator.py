@@ -1,4 +1,4 @@
-from .const import EnumTerrain
+from .const import EnumTerrain, EnumFeature
 
 from clubsandwich.tilemap import CellOutOfBoundsError
 from clubsandwich.geom import Rect, Point, Size
@@ -43,11 +43,7 @@ def generate_random_path(tilemap, rect1, rect2):
   return (doors, corridors)
 
 
-def generate_dungeon(tilemap):
-  generator = RandomBSPTree(tilemap.size, 4)
-
-  rooms = [generate_room(leaf) for leaf in generator.root.leaves]
-
+def engrave_rooms(tilemap, rooms):
   for room in rooms:
     for corner in room.rect.points_corners:
       tilemap.cell(corner).terrain = EnumTerrain.WALL
@@ -71,7 +67,9 @@ def generate_dungeon(tilemap):
     for point in room.rect.with_inset(1).points:
       tilemap.cell(point).terrain = EnumTerrain.FLOOR
 
-  for (a, b) in generator.root.sibling_pairs:
+
+def generate_and_engrave_corridors(tilemap, root):
+  for (a, b) in root.sibling_pairs:
     a = a.leftmost_leaf
     b = b.rightmost_leaf
     (doors, corridors) = generate_random_path(
@@ -89,3 +87,29 @@ def generate_dungeon(tilemap):
       door.terrain = EnumTerrain.DOOR_CLOSED
     for corridor in corridors:
       corridor.terrain = EnumTerrain.CORRIDOR
+
+
+def generate_dungeon(tilemap):
+  generator = RandomBSPTree(tilemap.size, 4)
+  rooms = [generate_room(leaf) for leaf in generator.root.leaves]
+  points_of_interest = {}
+  engrave_rooms(tilemap, rooms)  
+  generate_and_engrave_corridors(tilemap, generator.root)
+
+  stair_candidate_pairs = [
+    (generator.root.random_leaf.data['room'].rect.with_inset(2).get_random_point(),
+     generator.root.random_leaf.data['room'].rect.with_inset(2).get_random_point())
+    for _ in range(10)
+  ]
+  (stairs_up, stairs_down) = stair_candidate_pairs[0]
+  best_distance = stairs_up.manhattan_distance_to(stairs_down)
+  for (a, b) in stair_candidate_pairs:
+    if a.manhattan_distance_to(b) > best_distance:
+      (stairs_up, stairs_down) = (a, b)
+  points_of_interest['stairs_up'] = stairs_up
+  points_of_interest['stairs_down'] = stairs_down
+
+  tilemap.cell(points_of_interest['stairs_up']).feature = EnumFeature.STAIRS_UP
+  tilemap.cell(points_of_interest['stairs_down']).feature = EnumFeature.STAIRS_DOWN
+
+  return points_of_interest

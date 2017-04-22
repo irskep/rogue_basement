@@ -16,7 +16,7 @@ from clubsandwich.ui import (
   IntStepperView,
 )
 
-from ld38.draw_tilemap import draw_tilemap
+from ld38.draw_game import draw_game
 from ld38.gamestate import GameState
 
 
@@ -71,7 +71,7 @@ class GameScene(UIScene):
 
     def terminal_update(self, is_active=True):
         super().terminal_update(is_active)
-        draw_tilemap(self.gamestate.active_level.tilemap)
+        draw_game(self.gamestate)
 
 
 if __name__ == '__main__':
