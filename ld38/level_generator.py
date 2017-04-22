@@ -6,6 +6,9 @@ from clubsandwich.generators import RandomBSPTree
 from clubsandwich.tilemap import TileMap, CellOutOfBoundsError
 
 
+DEBUG_ALL_DOORS_OPEN = True
+
+
 class Room:
   def __init__(self, rect):
     self.rect = rect
@@ -84,7 +87,7 @@ def generate_and_engrave_corridors(tilemap, root):
         a.data['room'].rect.with_inset(1),
         b.data['room'].rect.with_inset(1))
     for door in doors:
-      door.terrain = EnumTerrain.DOOR_CLOSED
+      door.terrain = EnumTerrain.DOOR_OPEN if DEBUG_ALL_DOORS_OPEN else EnumTerrain.DOOR_CLOSED
     for corridor in corridors:
       corridor.terrain = EnumTerrain.CORRIDOR
 

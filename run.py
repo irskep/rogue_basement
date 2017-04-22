@@ -18,6 +18,7 @@ from clubsandwich.ui import (
 
 from ld38.draw_game import draw_game
 from ld38.gamestate import GameState
+from ld38.const import EnumEventNames
 
 
 LOGO = """
@@ -64,14 +65,33 @@ class MainMenuScene(UIScene):
 
 
 class GameScene(UIScene):
-    def __init__(self, *args, **kwargs):
-        views = []
-        self.gamestate = GameState()
-        super().__init__(views, *args, **kwargs)
+  def __init__(self, *args, **kwargs):
+    views = []
+    self.gamestate = GameState()
+    super().__init__(views, *args, **kwargs)
 
-    def terminal_update(self, is_active=True):
-        super().terminal_update(is_active)
-        draw_game(self.gamestate)
+  def terminal_read(self, val):
+    if val in (terminal.TK_UP, terminal.TK_K, terminal.TK_KP_8):
+      self.gamestate.active_level_state.fire(EnumEventNames.key_u)
+    if val in (terminal.TK_DOWN, terminal.TK_J, terminal.TK_KP_2):
+      self.gamestate.active_level_state.fire(EnumEventNames.key_d)
+    if val in (terminal.TK_LEFT, terminal.TK_H, terminal.TK_KP_4):
+      self.gamestate.active_level_state.fire(EnumEventNames.key_l)
+    if val in (terminal.TK_RIGHT, terminal.TK_L, terminal.TK_KP_6):
+      self.gamestate.active_level_state.fire(EnumEventNames.key_r)
+    if val in (terminal.TK_Y, terminal.TK_KP_7):
+      self.gamestate.active_level_state.fire(EnumEventNames.key_ul)
+    if val in (terminal.TK_U, terminal.TK_KP_9):
+      self.gamestate.active_level_state.fire(EnumEventNames.key_ur)
+    if val in (terminal.TK_B, terminal.TK_KP_1):
+      self.gamestate.active_level_state.fire(EnumEventNames.key_dl)
+    if val in (terminal.TK_N, terminal.TK_KP_3):
+      self.gamestate.active_level_state.fire(EnumEventNames.key_dr)
+
+  def terminal_update(self, is_active=True):
+    super().terminal_update(is_active)
+    self.gamestate.active_level_state.consume_events()
+    draw_game(self.gamestate)
 
 
 if __name__ == '__main__':
