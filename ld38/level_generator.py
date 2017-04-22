@@ -177,6 +177,15 @@ def place_monsters(tilemap):
   tilemap.points_of_interest['monsters'] = monster_datas 
   for room in tilemap.rooms_by_id.values():
     point = room.rect.with_inset(2).get_random_point()
+
+    i = 0
+    while point in tilemap.occupied_cells and i < 10:
+      point = room.rect.with_inset(2).get_random_point()
+      i += 1
+    if i >= 10:
+      continue
+
+    tilemap.occupied_cells.add(point)
     monster_datas.append(MonsterData(
       kind=EnumEntityKind.VERP, position=point, difficulty=room.difficulty))
 
@@ -204,6 +213,8 @@ def generate_dungeon(tilemap):
 
   tilemap.points_of_interest['stairs_up'] = stairs_up
   tilemap.points_of_interest['stairs_down'] = stairs_down
+  tilemap.occupied_cells.add(stairs_up)
+  tilemap.occupied_cells.add(stairs_down)
 
   tilemap.cell(tilemap.points_of_interest['stairs_up']).feature = EnumFeature.STAIRS_UP
   tilemap.cell(tilemap.points_of_interest['stairs_down']).feature = EnumFeature.STAIRS_DOWN

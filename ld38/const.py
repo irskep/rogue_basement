@@ -24,6 +24,12 @@ class EnumFeature(Enum):
 
 
 @unique
+class EnumMonsterMode(Enum):
+  DEFAULT = 0
+  CHASING_PLAYER = 1
+
+
+@unique
 class EnumEventNames(Enum):
   key_u = "key_u"
   key_d = "key_d"

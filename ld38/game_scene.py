@@ -92,6 +92,9 @@ class GameScene(UIScene):
       self.gamestate.active_level_state.fire(EnumEventNames.key_dl)
     if val in (terminal.TK_N, terminal.TK_KP_3):
       self.gamestate.active_level_state.fire(EnumEventNames.key_dr)
+    if val in (terminal.TK_PERIOD, terminal.TK_KP_5):
+      # 'wait'
+      self.gamestate.active_level_state.fire(EnumEventNames.player_took_action)
 
   def terminal_update(self, is_active=True):
     super().terminal_update(is_active)

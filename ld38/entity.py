@@ -17,6 +17,7 @@ class Entity:
     self.state = {}
     self.position = None
     self.behaviors = []
+    self.mode = None
 
   def add_behavior(self, factory):
     self.behaviors.append(factory(self))

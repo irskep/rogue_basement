@@ -5,7 +5,7 @@ from clubsandwich.geom import Size, Point
 from clubsandwich.tilemap import TileMap, Cell
 
 from .entity import Entity, Player
-from .behavior import KeyboardMovementBehavior, RandomWalkBehavior
+from .behavior import KeyboardMovementBehavior, RandomWalkBehavior, BeelineBehavior
 from .level_generator import generate_dungeon
 from .const import EnumEntityKind, EnumEventNames, EnumTerrain
 from .dispatcher import EventDispatcher
@@ -29,6 +29,7 @@ class RogueBasementTileMap(TileMap):
     super().__init__(*args, cell_class=RogueBasementCell, **kwargs)
     self.rooms_by_id = {}
     self.cells_by_room_id = defaultdict(list)
+    self.occupied_cells = set()
 
   def assign_room(self, point, room_id):
     cell = self.cell(point)
@@ -49,6 +50,7 @@ class LevelState:
     self.uuid = uuid4().hex
     self.entities = []
     self.event_queue = deque()
+    self.entity_by_position = {}
     self._is_applying_events = False
 
     self.dispatcher = EventDispatcher()
@@ -66,22 +68,32 @@ class LevelState:
       entity.state = {'hp': entity.stats['hp_max']}
       entity.position = monster_data.position
       if entity.kind == EnumEntityKind.VERP:
-        entity.add_behavior(lambda entity: RandomWalkBehavior(entity, self))
+        entity.add_behavior(lambda entity: BeelineBehavior(entity, self))
       self.add_entity(entity)
 
   def add_entity(self, entity):
     self.entities.append(entity)
     for behavior in entity.behaviors:
       behavior.add_to_event_dispatcher(self.dispatcher)
+    if entity.position:
+      self.entity_by_position[entity.position] = entity
 
   def remove_entity(self, entity):
     self.entities.remove(entity)
     for behavior in entity.behaviors:
       behavior.remove_from_event_dispatcher(self.dispatcher)
+    if entity.position:
+      del self.entity_by_position[entity.position]
 
   @property
   def active_rooms(self):
     return self.tilemap.get_room(self.player.position)  # for now
+
+  def test_line_of_sight(self, source, dest):  # both args are entities
+    for point in source.position.points_bresenham_to(dest.position):
+      if not self.get_can_see(source, point):
+        return False
+    return True
 
   ### event stuff ###
 
@@ -99,13 +111,23 @@ class LevelState:
   ### actions ###
 
   def get_can_move(self, entity, position):
+    # disallow swapping and such for now
+    if position in self.entity_by_position:
+      return False
+
+    cell = self.tilemap.cell(position)
+    return get_is_terrain_passable(cell.terrain)
+
+  def get_can_see(self, entity, position):
     cell = self.tilemap.cell(position)
     return get_is_terrain_passable(cell.terrain)
 
   def move(self, entity, position):
     cell = self.tilemap.cell(position)
     if self.get_can_move(entity, position):
+      del self.entity_by_position[entity.position]
       entity.position = position
+      self.entity_by_position[position] = entity
       self.fire(EnumEventNames.entity_moved, data=entity, entity=entity)
       if entity is self.player:
         self.fire(EnumEventNames.player_took_action, data=position, entity=None)

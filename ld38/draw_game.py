@@ -1,6 +1,6 @@
 from math import floor
 
-from .const import EnumTerrain, EnumFeature, EnumEntityKind
+from .const import EnumTerrain, EnumFeature, EnumEntityKind, EnumMonsterMode
 
 from clubsandwich.blt.nice_terminal import terminal
 from clubsandwich.draw import LINE_STYLES
@@ -18,6 +18,7 @@ C_TRANSITION_3_4 = '#00ffff'
 
 C_PLAYER = '#ffffff'
 C_VERP = '#ff0000'
+C_VERP_CHASING = '#ff8800'
 
 
 def draw_game(gamestate, bounds, ctx):
@@ -94,6 +95,8 @@ def _draw_game(gamestate, bounds, ctx):
       if entity.kind == EnumEntityKind.VERP:
         color = C_VERP
         char = 'v'
+        if entity.mode == EnumMonsterMode.CHASING_PLAYER:
+          color = C_VERP_CHASING
     except KeyError:
       pass
 

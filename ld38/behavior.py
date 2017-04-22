@@ -8,7 +8,7 @@ from clubsandwich.geom import Size, Point
 from clubsandwich.tilemap import TileMap
 
 from .level_generator import generate_dungeon
-from .const import EnumEntityKind, EnumEventNames, EnumTerrain
+from .const import EnumEntityKind, EnumEventNames, EnumTerrain, EnumMonsterMode
 
 
 class Behavior:
@@ -63,6 +63,7 @@ class RandomWalkBehavior(Behavior):
     super().__init__(entity, level_state, [EnumEventNames.player_took_action])
 
   def on_player_took_action(self, data):
+    self.entity.mode = EnumMonsterMode.DEFAULT
     possibilities = [
       poss for poss in [
       self.entity.position + p for p in [
@@ -72,3 +73,33 @@ class RandomWalkBehavior(Behavior):
     if not possibilities:
       return
     self.level_state.move(self.entity, random.choice(possibilities))
+
+
+class BeelineBehavior(RandomWalkBehavior):
+  def on_player_took_action(self, data):
+    if self.entity.position.manhattan_distance_to(self.level_state.player.position) > 20:
+      return super().on_player_took_action(data)
+
+    if not self.level_state.test_line_of_sight(self.entity, self.level_state.player):
+      return super().on_player_took_action(data)
+
+    candidates = [
+      p for p in
+      list(self.entity.position.neighbors) + list(self.entity.position.diagonal_neighbors)
+      if self.level_state.tilemap.contains_point(p)]
+
+    if not candidates:
+      return super().on_player_took_action(data)
+
+    self.entity.mode = EnumMonsterMode.CHASING_PLAYER
+
+    best_point = candidates[0]
+    best_distance = best_point.manhattan_distance_to(self.level_state.player.position)
+    for point in candidates:
+      distance = point.manhattan_distance_to(self.level_state.player.position)
+      if distance < best_distance:
+        best_distance = distance
+        best_point = point
+    
+    self.level_state.move(self.entity, best_point)
+    
