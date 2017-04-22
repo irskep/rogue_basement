@@ -100,6 +100,7 @@ class StatsView(View):
 
 
   def draw(self, ctx):
+    ctx.color('#ffffff')
     draw_line_vert(Point(self.bounds.x2, self.bounds.y), self.bounds.height)
 
 
