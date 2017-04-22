@@ -1,8 +1,9 @@
+from collections import namedtuple
 from math import floor
 from random import randrange
 from uuid import uuid4
 
-from .const import EnumTerrain, EnumFeature
+from .const import EnumTerrain, EnumFeature, EnumEntityKind
 
 from clubsandwich.geom import Rect, Point, Size
 from clubsandwich.generators import RandomBSPTree
@@ -17,6 +18,7 @@ class Room:
     self.rect = rect  # may be None
     self.room_id = uuid4().hex
     self.neighbor_ids = set()
+    self.difficulty = None
 
 
 def generate_room(bsp_leaf):
@@ -163,6 +165,22 @@ def engrave_bsp_divisions(tilemap, node):
     engrave_bsp_divisions(tilemap, node.child_b)
 
 
+def engrave_difficulty(root):
+  for i, path in enumerate(['aa', 'ab', 'bb', 'ba']):
+    for leaf in root.get_node_at_path(path).leaves:
+      leaf.data['room'].difficulty = i
+
+
+MonsterData = namedtuple('MonsterData', ['kind', 'position', 'difficulty'])
+def place_monsters(tilemap):
+  monster_datas = []
+  tilemap.points_of_interest['monsters'] = monster_datas 
+  for room in tilemap.rooms_by_id.values():
+    point = room.rect.with_inset(2).get_random_point()
+    monster_datas.append(MonsterData(
+      kind=EnumEntityKind.VERP, position=point, difficulty=room.difficulty))
+
+
 def _bsp_randrange(level, a, b):
   if level in (0, 1):
     return floor((a + b) / 2)
@@ -189,6 +207,10 @@ def generate_dungeon(tilemap):
 
   tilemap.cell(tilemap.points_of_interest['stairs_up']).feature = EnumFeature.STAIRS_UP
   tilemap.cell(tilemap.points_of_interest['stairs_down']).feature = EnumFeature.STAIRS_DOWN
+
+  engrave_difficulty(generator.root)
+
+  place_monsters(tilemap)
 
   engrave_bsp_divisions(tilemap, generator.root)
   return tilemap

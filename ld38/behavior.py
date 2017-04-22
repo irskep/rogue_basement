@@ -1,3 +1,4 @@
+import random
 import weakref
 from collections import deque
 from enum import Enum
@@ -47,35 +48,27 @@ class KeyboardMovementBehavior(Behavior):
       EnumEventNames.key_dr,
     ])
 
-  def on_key_u(self, data): self.level_state.fire(EnumEventNames.move_u, self.entity)
-  def on_key_d(self, data): self.level_state.fire(EnumEventNames.move_d, self.entity)
-  def on_key_l(self, data): self.level_state.fire(EnumEventNames.move_l, self.entity)
-  def on_key_r(self, data): self.level_state.fire(EnumEventNames.move_r, self.entity)
-  def on_key_ul(self, data): self.level_state.fire(EnumEventNames.move_ul, self.entity)
-  def on_key_ur(self, data): self.level_state.fire(EnumEventNames.move_ur, self.entity)
-  def on_key_dl(self, data): self.level_state.fire(EnumEventNames.move_dl, self.entity)
-  def on_key_dr(self, data): self.level_state.fire(EnumEventNames.move_dr, self.entity)
+  def on_key_u(self, data): self.level_state.move(self.entity, self.entity.position + Point(0, -1))
+  def on_key_d(self, data): self.level_state.move(self.entity, self.entity.position + Point(0, 1))
+  def on_key_l(self, data): self.level_state.move(self.entity, self.entity.position + Point(-1, 0))
+  def on_key_r(self, data): self.level_state.move(self.entity, self.entity.position + Point(1, 0))
+  def on_key_ul(self, data): self.level_state.move(self.entity, self.entity.position + Point(-1, -1))
+  def on_key_ur(self, data): self.level_state.move(self.entity, self.entity.position + Point(1, -1))
+  def on_key_dl(self, data): self.level_state.move(self.entity, self.entity.position + Point(-1, 1))
+  def on_key_dr(self, data): self.level_state.move(self.entity, self.entity.position + Point(1, 1))
 
 
-class MovementBehavior(Behavior):
+class RandomWalkBehavior(Behavior):
   def __init__(self, entity, level_state):
-    super().__init__(entity, level_state, [
-      EnumEventNames.move_u,
-      EnumEventNames.move_d,
-      EnumEventNames.move_l,
-      EnumEventNames.move_r,
-      EnumEventNames.move_ul,
-      EnumEventNames.move_ur,
-      EnumEventNames.move_dl,
-      EnumEventNames.move_dr,
-    ])
-    self.is_local_to_entity = True
+    super().__init__(entity, level_state, [EnumEventNames.player_took_action])
 
-  def on_move_u(self, data): self.level_state.move(self.entity, self.entity.position + Point(0, -1))
-  def on_move_d(self, data): self.level_state.move(self.entity, self.entity.position + Point(0, 1))
-  def on_move_l(self, data): self.level_state.move(self.entity, self.entity.position + Point(-1, 0))
-  def on_move_r(self, data): self.level_state.move(self.entity, self.entity.position + Point(1, 0))
-  def on_move_ul(self, data): self.level_state.move(self.entity, self.entity.position + Point(-1, -1))
-  def on_move_ur(self, data): self.level_state.move(self.entity, self.entity.position + Point(1, -1))
-  def on_move_dl(self, data): self.level_state.move(self.entity, self.entity.position + Point(-1, 1))
-  def on_move_dr(self, data): self.level_state.move(self.entity, self.entity.position + Point(1, 1))
+  def on_player_took_action(self, data):
+    possibilities = [
+      poss for poss in [
+      self.entity.position + p for p in [
+        Point(0, -1), Point(0, 1), Point(-1, 0), Point(1, 0)]
+      ] if self.level_state.get_can_move(self.entity, poss)
+    ]
+    if not possibilities:
+      return
+    self.level_state.move(self.entity, random.choice(possibilities))

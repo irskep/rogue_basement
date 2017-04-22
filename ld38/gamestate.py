@@ -5,7 +5,7 @@ from clubsandwich.geom import Size, Point
 from clubsandwich.tilemap import TileMap, Cell
 
 from .entity import Entity, Player
-from .behavior import KeyboardMovementBehavior, MovementBehavior
+from .behavior import KeyboardMovementBehavior, RandomWalkBehavior
 from .level_generator import generate_dungeon
 from .const import EnumEntityKind, EnumEventNames, EnumTerrain
 from .dispatcher import EventDispatcher
@@ -58,8 +58,16 @@ class LevelState:
     self.player = Player()
     self.player.position = self.tilemap.points_of_interest['stairs_up']
     self.player.add_behavior(lambda entity: KeyboardMovementBehavior(entity, self))
-    self.player.add_behavior(lambda entity: MovementBehavior(entity, self))
     self.add_entity(self.player)
+
+    for monster_data in self.tilemap.points_of_interest['monsters']:
+      entity = Entity(kind=monster_data.kind)
+      entity.stats = {'hp_max': 10 * monster_data.difficulty}
+      entity.state = {'hp': entity.stats['hp_max']}
+      entity.position = monster_data.position
+      if entity.kind == EnumEntityKind.VERP:
+        entity.add_behavior(lambda entity: RandomWalkBehavior(entity, self))
+      self.add_entity(entity)
 
   def add_entity(self, entity):
     self.entities.append(entity)
@@ -90,13 +98,21 @@ class LevelState:
 
   ### actions ###
 
+  def get_can_move(self, entity, position):
+    cell = self.tilemap.cell(position)
+    return get_is_terrain_passable(cell.terrain)
+
   def move(self, entity, position):
     cell = self.tilemap.cell(position)
-    if get_is_terrain_passable(cell.terrain):
+    if self.get_can_move(entity, position):
       entity.position = position
       self.fire(EnumEventNames.entity_moved, data=entity, entity=entity)
+      if entity is self.player:
+        self.fire(EnumEventNames.player_took_action, data=position, entity=None)
     elif cell.terrain == EnumTerrain.DOOR_CLOSED:
       self.open_door(entity, position)
+      if entity is self.player:
+        self.fire(EnumEventNames.player_took_action, data=position, entity=None)
     else:
       self.fire(EnumEventNames.entity_bumped, data=cell, entity=entity)
 

@@ -46,3 +46,4 @@ class EnumEventNames(Enum):
   entity_moved = "entity_moved"
   entity_bumped = "entity_bumped"
   door_open = "door_open"
+  player_took_action = "player_took_action"
