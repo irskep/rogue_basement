@@ -72,13 +72,8 @@ class LevelState:
       behavior.remove_from_event_dispatcher(self.dispatcher)
 
   @property
-  def visible_room_ids(self):
-    player_room = self.tilemap.get_room(self.player.position)
-    return {player_room.room_id} | player_room.neighbor_ids
-
-  @property
   def active_rooms(self):
-    return self.visible_rooms  # for now
+    return self.tilemap.get_room(self.player.position)  # for now
 
   ### event stuff ###
 

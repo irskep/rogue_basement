@@ -4,7 +4,6 @@ from uuid import uuid4
 
 from .const import EnumTerrain, EnumFeature
 
-from clubsandwich.tilemap import CellOutOfBoundsError
 from clubsandwich.geom import Rect, Point, Size
 from clubsandwich.generators import RandomBSPTree
 from clubsandwich.tilemap import TileMap, CellOutOfBoundsError
@@ -127,14 +126,6 @@ def generate_and_engrave_corridors(tilemap, root):
 
 
 def engrave_corridor_between_rooms(tilemap, a, b, annotation=None):
-  room = Room(rect=None)
-  a.neighbor_ids.add(room.room_id)
-  b.neighbor_ids.add(room.room_id)
-  room.neighbor_ids.add(a.room_id)
-  room.neighbor_ids.add(b.room_id)
-
-  tilemap.rooms_by_id[room.room_id] = room
-
   (doors, corridors) = generate_random_path(
     tilemap,
     a.rect.with_inset(1),
@@ -150,7 +141,6 @@ def engrave_corridor_between_rooms(tilemap, a, b, annotation=None):
     door.terrain = EnumTerrain.DOOR_OPEN if DEBUG_ALL_DOORS_OPEN else EnumTerrain.DOOR_CLOSED
   for corridor in corridors:
     corridor.terrain = EnumTerrain.CORRIDOR
-    tilemap.assign_room(corridor.point, room.room_id)
     if annotation:
       corridor.annotations.add(annotation)
 

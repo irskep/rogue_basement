@@ -29,7 +29,6 @@ def _draw_game(gamestate, bounds, ctx):
   line_chars = LINE_STYLES['single']
 
   level_state = gamestate.active_level_state
-  visible_room_ids = level_state.visible_room_ids
 
   entity_cache = {}
 
@@ -38,8 +37,6 @@ def _draw_game(gamestate, bounds, ctx):
       entity_cache[entity.position] = entity
 
   for point in bounds.points:
-    if level_state.tilemap.cell(point).room_id not in visible_room_ids:
-      continue
     try:
       cell = level_state.tilemap.cell(point)
     except IndexError:
