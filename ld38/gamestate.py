@@ -2,7 +2,7 @@ from collections import deque, defaultdict
 from uuid import uuid4
 
 from clubsandwich.geom import Size, Point
-from clubsandwich.tilemap import TileMap, Cell
+from clubsandwich.tilemap import TileMap, Cell, CellOutOfBoundsError
 
 from .entity import Entity, Player
 from .behavior import KeyboardMovementBehavior, RandomWalkBehavior, BeelineBehavior
@@ -89,12 +89,6 @@ class LevelState:
   def active_rooms(self):
     return self.tilemap.get_room(self.player.position)  # for now
 
-  def test_line_of_sight(self, source, dest):  # both args are entities
-    for point in source.position.points_bresenham_to(dest.position):
-      if not self.get_can_see(source, point):
-        return False
-    return True
-
   ### event stuff ###
 
   def fire(self, name, data=None, entity=None):
@@ -110,6 +104,12 @@ class LevelState:
 
   ### actions ###
 
+  def test_line_of_sight(self, source, dest):  # both args are entities
+    for point in source.position.points_bresenham_to(dest.position):
+      if not self.get_can_see(source, point):
+        return False
+    return True
+
   def get_can_move(self, entity, position):
     # disallow swapping and such for now
     if position in self.entity_by_position:
@@ -121,6 +121,18 @@ class LevelState:
   def get_can_see(self, entity, position):
     cell = self.tilemap.cell(position)
     return get_is_terrain_passable(cell.terrain)
+
+  def action_close(self, entity, position):
+    try:
+      cell = self.tilemap.cell(position)
+    except CellOutOfBoundsError:
+      return False
+    if cell.terrain != EnumTerrain.DOOR_OPEN:
+      return False
+    cell.terrain = EnumTerrain.DOOR_CLOSED
+    self.fire(EnumEventNames.player_took_action, data=position, entity=None)
+    return True
+    
 
   def move(self, entity, position):
     cell = self.tilemap.cell(position)

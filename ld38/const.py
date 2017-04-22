@@ -1,5 +1,14 @@
 from enum import Enum, unique
 
+from clubsandwich.blt.nice_terminal import terminal
+
+
+@unique
+class EnumMode(Enum):
+  DEFAULT = 0
+  CLOSE = 1
+
+
 @unique
 class EnumTerrain(Enum):
   EMPTY = 0
@@ -53,3 +62,16 @@ class EnumEventNames(Enum):
   entity_bumped = "entity_bumped"
   door_open = "door_open"
   player_took_action = "player_took_action"
+
+
+KEYS_U = (terminal.TK_UP, terminal.TK_K, terminal.TK_KP_8)
+KEYS_D = (terminal.TK_DOWN, terminal.TK_J, terminal.TK_KP_2)
+KEYS_L = (terminal.TK_LEFT, terminal.TK_H, terminal.TK_KP_4)
+KEYS_R = (terminal.TK_RIGHT, terminal.TK_L, terminal.TK_KP_6)
+KEYS_UL = (terminal.TK_Y, terminal.TK_KP_7)
+KEYS_UR = (terminal.TK_U, terminal.TK_KP_9)
+KEYS_DL = (terminal.TK_B, terminal.TK_KP_1)
+KEYS_DR = (terminal.TK_N, terminal.TK_KP_3)
+KEYS_WAIT = (terminal.TK_PERIOD, terminal.TK_KP_5)
+KEYS_CLOSE = (terminal.TK_C,)
+KEYS_CANCEL = (terminal.TK_ESCAPE,)

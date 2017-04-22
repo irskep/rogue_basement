@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from enum import Enum
 
-from clubsandwich.blt.nice_terminal import terminal
 from clubsandwich.draw import draw_line_vert
 from clubsandwich.geom import Size, Point, Rect
 from clubsandwich.ui import (
@@ -14,7 +13,44 @@ from clubsandwich.ui import (
 
 from .draw_game import draw_game
 from .gamestate import GameState
-from .const import EnumEventNames
+from .const import (
+  EnumEventNames,
+  EnumMode,
+  KEYS_U,
+  KEYS_D,
+  KEYS_L,
+  KEYS_R,
+  KEYS_UL,
+  KEYS_UR,
+  KEYS_DL,
+  KEYS_DR,
+  KEYS_WAIT,
+  KEYS_CLOSE,
+  KEYS_CANCEL
+)
+
+
+KEYS_AND_EVENTS = [
+  (KEYS_U, EnumEventNames.key_u),
+  (KEYS_D, EnumEventNames.key_d),
+  (KEYS_L, EnumEventNames.key_l),
+  (KEYS_R, EnumEventNames.key_r),
+  (KEYS_UL, EnumEventNames.key_ul),
+  (KEYS_UR, EnumEventNames.key_ur),
+  (KEYS_DL, EnumEventNames.key_dl),
+  (KEYS_DR, EnumEventNames.key_dr),
+  (KEYS_WAIT, EnumEventNames.player_took_action),
+]
+KEYS_AND_DIRECTIONS = [
+  (KEYS_U, Point(0, -1)),
+  (KEYS_D, Point(0, 1)),
+  (KEYS_L, Point(-1, 0)),
+  (KEYS_R, Point(1, 0)),
+  (KEYS_UL, Point(-1, -1)),
+  (KEYS_UR, Point(-1, 1)),
+  (KEYS_DL, Point(1, -1)),
+  (KEYS_DR, Point(1, 1)),
+]
 
 
 class GameView(View):
@@ -50,6 +86,7 @@ class StatsView(View):
 
 class GameScene(UIScene):
   def __init__(self, *args, **kwargs):
+    self._mode = EnumMode.DEFAULT
     self.gamestate = GameState()
     self.log_view = LabelView(
       text="", align_horz='left', color_bg='#333333',
@@ -66,35 +103,51 @@ class GameScene(UIScene):
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_bumped, level_state.player)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_moved, level_state.player)
 
+  @property
+  def mode(self):
+    return self._mode
+
+  @mode.setter
+  def mode(self, mode):
+    self._mode = mode
+    if mode == EnumMode.DEFAULT:
+      pass
+    else:
+      self.log_view.text = "Close what? (Pick a direction)"
+
+  def log(self, text):
+    self.log_view.text = text
+    print(text)
+
   def on_entity_moved(self, data):
     self.log_view.text = ""
 
   def on_entity_bumped(self, data):
-    self.log_view.text = "Oof!"
+    self.log("Oof!")
 
   def on_door_open(self, data):
-    self.log_view.text = "You open the door."
+    self.log("You open the door.")
 
   def terminal_read(self, val):
-    if val in (terminal.TK_UP, terminal.TK_K, terminal.TK_KP_8):
-      self.gamestate.active_level_state.fire(EnumEventNames.key_u)
-    if val in (terminal.TK_DOWN, terminal.TK_J, terminal.TK_KP_2):
-      self.gamestate.active_level_state.fire(EnumEventNames.key_d)
-    if val in (terminal.TK_LEFT, terminal.TK_H, terminal.TK_KP_4):
-      self.gamestate.active_level_state.fire(EnumEventNames.key_l)
-    if val in (terminal.TK_RIGHT, terminal.TK_L, terminal.TK_KP_6):
-      self.gamestate.active_level_state.fire(EnumEventNames.key_r)
-    if val in (terminal.TK_Y, terminal.TK_KP_7):
-      self.gamestate.active_level_state.fire(EnumEventNames.key_ul)
-    if val in (terminal.TK_U, terminal.TK_KP_9):
-      self.gamestate.active_level_state.fire(EnumEventNames.key_ur)
-    if val in (terminal.TK_B, terminal.TK_KP_1):
-      self.gamestate.active_level_state.fire(EnumEventNames.key_dl)
-    if val in (terminal.TK_N, terminal.TK_KP_3):
-      self.gamestate.active_level_state.fire(EnumEventNames.key_dr)
-    if val in (terminal.TK_PERIOD, terminal.TK_KP_5):
-      # 'wait'
-      self.gamestate.active_level_state.fire(EnumEventNames.player_took_action)
+    level_state = self.gamestate.active_level_state
+    if self.mode == EnumMode.DEFAULT:
+      for keys, event_name in KEYS_AND_EVENTS:
+        if val in keys:
+          level_state.fire(event_name)
+      if val in KEYS_CLOSE:
+        self.mode = EnumMode.CLOSE
+    elif self.mode == EnumMode.CLOSE:
+      if val in KEYS_CANCEL:
+        self.mode = EnumMode.DEFAULT
+      for keys, delta in KEYS_AND_DIRECTIONS:
+        if val in keys:
+          if level_state.action_close(level_state.player, level_state.player.position + delta):
+            self.log("You close the door.")
+          else:
+            self.log("There is no door there.")
+          self.mode = EnumMode.DEFAULT
+          return
+      self.log("Invalid direction")
 
   def terminal_update(self, is_active=True):
     super().terminal_update(is_active)
