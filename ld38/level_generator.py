@@ -1,5 +1,6 @@
 from math import floor
 from random import randrange
+from uuid import uuid4
 
 from .const import EnumTerrain, EnumFeature
 
@@ -167,7 +168,6 @@ def _bsp_randrange(level, a, b):
 def generate_dungeon(tilemap):
   generator = RandomBSPTree(tilemap.size, 4, randrange_func=_bsp_randrange)
   rooms = [generate_room(leaf) for leaf in generator.root.leaves]
-  points_of_interest = {}
   engrave_rooms(tilemap, rooms)  
   generate_and_engrave_corridors(tilemap, generator.root)
 
@@ -179,12 +179,11 @@ def generate_dungeon(tilemap):
     generator.root.get_node_at_path('ba').leaves, Point(tilemap.size.width / 2, 0))
   stairs_down = stairs_down_room.rect.with_inset(2).get_random_point()
 
-  points_of_interest['stairs_up'] = stairs_up
-  points_of_interest['stairs_down'] = stairs_down
+  tilemap.points_of_interest['stairs_up'] = stairs_up
+  tilemap.points_of_interest['stairs_down'] = stairs_down
 
-  tilemap.cell(points_of_interest['stairs_up']).feature = EnumFeature.STAIRS_UP
-  tilemap.cell(points_of_interest['stairs_down']).feature = EnumFeature.STAIRS_DOWN
+  tilemap.cell(tilemap.points_of_interest['stairs_up']).feature = EnumFeature.STAIRS_UP
+  tilemap.cell(tilemap.points_of_interest['stairs_down']).feature = EnumFeature.STAIRS_DOWN
 
   engrave_bsp_divisions(tilemap, generator.root)
-
-  return points_of_interest
+  return tilemap

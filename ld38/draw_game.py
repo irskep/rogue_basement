@@ -36,7 +36,7 @@ def _draw_game(gamestate, bounds, ctx):
 
   for point in bounds.points:
     try:
-      cell = gamestate.active_level_state.level.tilemap.cell(point)
+      cell = gamestate.active_level_state.tilemap.cell(point)
     except IndexError:
       continue
     char = ' '

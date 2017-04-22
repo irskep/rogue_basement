@@ -18,16 +18,16 @@ def get_is_terrain_passable(terrain):
   return terrain in (EnumTerrain.FLOOR, EnumTerrain.CORRIDOR, EnumTerrain.DOOR_OPEN)
 
 
-class Level:
-  def __init__(self):
-    self.tilemap = TileMap(LEVEL_SIZE)
-    self.points_of_interest = generate_dungeon(self.tilemap)
+class RogueBasementTileMap(TileMap):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.rooms_by_id = {}
 
 
 class LevelState:
-  def __init__(self, level):
+  def __init__(self, tilemap):
+    self.tilemap = tilemap
     self.uuid = uuid4().hex
-    self.level = level
     self.entities = []
     self.event_queue = deque()
     self._is_applying_events = False
@@ -37,7 +37,7 @@ class LevelState:
       self.dispatcher.register_event_type(name)
 
     self.player = Player()
-    self.player.position = self.level.points_of_interest['stairs_up']
+    self.player.position = self.tilemap.points_of_interest['stairs_up']
     self.player.add_behavior(lambda entity: KeyboardMovementBehavior(entity, self))
     self.player.add_behavior(lambda entity: MovementBehavior(entity, self))
     self.add_entity(self.player)
@@ -68,7 +68,7 @@ class LevelState:
   ### actions ###
 
   def move(self, entity, position):
-    cell = self.level.tilemap.cell(position)
+    cell = self.tilemap.cell(position)
     if get_is_terrain_passable(cell.terrain):
       entity.position = position
       self.fire(EnumEventNames.entity_moved, data=entity, entity=entity)
@@ -79,7 +79,7 @@ class LevelState:
 
   def open_door(self, entity, position):
     # this is where the logic goes for doors that are hard to open.
-    cell = self.level.tilemap.cell(position)
+    cell = self.tilemap.cell(position)
     cell.terrain = EnumTerrain.DOOR_OPEN
     self.fire(EnumEventNames.door_open, data=cell, entity=entity)
 
@@ -96,6 +96,6 @@ class GameState:
     return self.level_states_by_id[self.active_id]
 
   def add_level(self):
-    level_state = LevelState(Level())
+    level_state = LevelState(generate_dungeon(RogueBasementTileMap(LEVEL_SIZE)))
     self.level_states_by_id[level_state.uuid] = level_state
     return level_state
