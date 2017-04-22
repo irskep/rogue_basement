@@ -3,8 +3,6 @@ from enum import Enum
 
 from clubsandwich.blt.nice_terminal import terminal
 from clubsandwich.director import DirectorLoop
-from clubsandwich.geom import Size
-from clubsandwich.tilemap import TileMap
 from clubsandwich.ui import (
   LabelView,
   ButtonView,
@@ -18,8 +16,8 @@ from clubsandwich.ui import (
   IntStepperView,
 )
 
-from ld38.level_generator import generate_dungeon
 from ld38.draw_tilemap import draw_tilemap
+from ld38.gamestate import GameState
 
 
 LOGO = """
@@ -65,43 +63,15 @@ class MainMenuScene(UIScene):
 ### Game ###
 
 
-
-
-class Entity:
-    def __init__(self):
-        self.stats = {}
-        self.state = {}
-        self.position = None
-        self.is_player = False
-
-
-class GameState:
-    def __init__(self, player_strength):
-        self.turn_number = 0
-        self.player = Entity()
-        self.player.stats = {}
-        self.player.state = {'hp': 100}
-        self.world = {
-            'level_ids': [],
-            'levels_by_id': {},
-        }
-        self.add_level()
-
-    def add_level(self):
-        pass
-
-
 class GameScene(UIScene):
     def __init__(self, *args, **kwargs):
-        views = [
-        ]
+        views = []
+        self.gamestate = GameState()
         super().__init__(views, *args, **kwargs)
-        self.tilemap = TileMap(Size(80, 25))
-        generate_dungeon(self.tilemap)
 
     def terminal_update(self, is_active=True):
         super().terminal_update(is_active)
-        draw_tilemap(self.tilemap)
+        draw_tilemap(self.gamestate.active_level.tilemap)
 
 
 if __name__ == '__main__':
