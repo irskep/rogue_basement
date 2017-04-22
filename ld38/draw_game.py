@@ -28,15 +28,20 @@ def draw_game(gamestate, bounds, ctx):
 def _draw_game(gamestate, bounds, ctx):
   line_chars = LINE_STYLES['single']
 
+  level_state = gamestate.active_level_state
+  visible_room_ids = level_state.visible_room_ids
+
   entity_cache = {}
 
-  for entity in gamestate.active_level_state.entities:
+  for entity in level_state.entities:
     if entity.position:
       entity_cache[entity.position] = entity
 
   for point in bounds.points:
+    if level_state.tilemap.cell(point).room_id not in visible_room_ids:
+      continue
     try:
-      cell = gamestate.active_level_state.tilemap.cell(point)
+      cell = level_state.tilemap.cell(point)
     except IndexError:
       continue
     char = ' '

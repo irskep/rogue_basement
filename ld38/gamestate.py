@@ -1,4 +1,4 @@
-from collections import deque
+from collections import deque, defaultdict
 from uuid import uuid4
 
 from clubsandwich.geom import Size, Point
@@ -28,6 +28,19 @@ class RogueBasementTileMap(TileMap):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, cell_class=RogueBasementCell, **kwargs)
     self.rooms_by_id = {}
+    self.cells_by_room_id = defaultdict(list)
+
+  def assign_room(self, point, room_id):
+    cell = self.cell(point)
+    assert not cell.room_id
+    cell.room_id = room_id
+    self.cells_by_room_id[room_id].append(cell)
+
+  def get_neighbors(self, room):
+    return [self.rooms_by_id[room_id] for room_id in room.neighbor_ids]
+
+  def get_room(self, point):
+    return self.rooms_by_id[self.cell(point).room_id]
 
 
 class LevelState:
@@ -57,6 +70,15 @@ class LevelState:
     self.entities.remove(entity)
     for behavior in entity.behaviors:
       behavior.remove_from_event_dispatcher(self.dispatcher)
+
+  @property
+  def visible_room_ids(self):
+    player_room = self.tilemap.get_room(self.player.position)
+    return {player_room.room_id} | player_room.neighbor_ids
+
+  @property
+  def active_rooms(self):
+    return self.visible_rooms  # for now
 
   ### event stuff ###
 

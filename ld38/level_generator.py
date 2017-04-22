@@ -17,6 +17,7 @@ class Room:
   def __init__(self, rect):
     self.rect = rect  # may be None
     self.room_id = uuid4().hex
+    self.neighbor_ids = set()
 
 
 def generate_room(bsp_leaf):
@@ -90,7 +91,7 @@ def engrave_rooms(tilemap, rooms):
       tilemap.cell(point).terrain = EnumTerrain.FLOOR
 
     for point in room.rect.points:
-      tilemap.cell(point).room_id = room.room_id
+      tilemap.assign_room(point, room.room_id)
 
 
 def generate_and_engrave_corridors(tilemap, root):
@@ -127,6 +128,11 @@ def generate_and_engrave_corridors(tilemap, root):
 
 def engrave_corridor_between_rooms(tilemap, a, b, annotation=None):
   room = Room(rect=None)
+  a.neighbor_ids.add(room.room_id)
+  b.neighbor_ids.add(room.room_id)
+  room.neighbor_ids.add(a.room_id)
+  room.neighbor_ids.add(b.room_id)
+
   tilemap.rooms_by_id[room.room_id] = room
 
   (doors, corridors) = generate_random_path(
@@ -144,7 +150,7 @@ def engrave_corridor_between_rooms(tilemap, a, b, annotation=None):
     door.terrain = EnumTerrain.DOOR_OPEN if DEBUG_ALL_DOORS_OPEN else EnumTerrain.DOOR_CLOSED
   for corridor in corridors:
     corridor.terrain = EnumTerrain.CORRIDOR
-    corridor.room_id = room.room_id
+    tilemap.assign_room(corridor.point, room.room_id)
     if annotation:
       corridor.annotations.add(annotation)
 
