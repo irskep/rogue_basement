@@ -2,7 +2,7 @@ from collections import deque
 from uuid import uuid4
 
 from clubsandwich.geom import Size, Point
-from clubsandwich.tilemap import TileMap
+from clubsandwich.tilemap import TileMap, Cell
 
 from .entity import Entity, Player
 from .behavior import KeyboardMovementBehavior, MovementBehavior
@@ -18,9 +18,15 @@ def get_is_terrain_passable(terrain):
   return terrain in (EnumTerrain.FLOOR, EnumTerrain.CORRIDOR, EnumTerrain.DOOR_OPEN)
 
 
-class RogueBasementTileMap(TileMap):
+class RogueBasementCell(Cell):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
+    self.room_id = None
+
+
+class RogueBasementTileMap(TileMap):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, cell_class=RogueBasementCell, **kwargs)
     self.rooms_by_id = {}
 
 
