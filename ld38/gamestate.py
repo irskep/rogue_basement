@@ -10,7 +10,7 @@ from .level_generator import generate_dungeon
 from .const import EnumEntityKind, EnumEventNames
 
 
-LEVEL_SIZE = Size(80, 25)
+LEVEL_SIZE = Size(160, 80)
 
 
 class EventDispatcher:
@@ -178,7 +178,6 @@ class LevelState:
     self._is_applying_events = True
     while self.event_queue:
       (name, data, entity) = self.event_queue.popleft()
-      print(name.value, data, entity)
       self.dispatcher.fire(name, data, entity)
     self._is_applying_events = False
 

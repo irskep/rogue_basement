@@ -1,3 +1,6 @@
+from math import floor
+from random import randrange
+
 from .const import EnumTerrain, EnumFeature
 
 from clubsandwich.tilemap import CellOutOfBoundsError
@@ -92,8 +95,33 @@ def generate_and_engrave_corridors(tilemap, root):
       corridor.terrain = EnumTerrain.CORRIDOR
 
 
+def engrave_bsp_divisions(tilemap, node):
+  if node.level > 1:
+    return
+  if node.value:
+    if node.is_horz:
+      x = node.rect.x + node.value
+      for y in range(node.rect.y, node.rect.y2 + 1):
+        tilemap.cell(Point(x, y)).debug_character = '|'
+    else:
+      y = node.rect.y + node.value
+      for x in range(node.rect.x, node.rect.x2 + 1):
+        tilemap.cell(Point(x, y)).debug_character = '-'
+  if node.child_a:
+    engrave_bsp_divisions(tilemap, node.child_a)
+  if node.child_b:
+    engrave_bsp_divisions(tilemap, node.child_b)
+
+
+def _bsp_randrange(level, a, b):
+  if level in (0, 1):
+    return floor((a + b) / 2)
+  else:
+    return randrange(a, b)
+
+
 def generate_dungeon(tilemap):
-  generator = RandomBSPTree(tilemap.size, 4)
+  generator = RandomBSPTree(tilemap.size, 4, randrange_func=_bsp_randrange)
   rooms = [generate_room(leaf) for leaf in generator.root.leaves]
   points_of_interest = {}
   engrave_rooms(tilemap, rooms)  
@@ -114,5 +142,7 @@ def generate_dungeon(tilemap):
 
   tilemap.cell(points_of_interest['stairs_up']).feature = EnumFeature.STAIRS_UP
   tilemap.cell(points_of_interest['stairs_down']).feature = EnumFeature.STAIRS_DOWN
+
+  engrave_bsp_divisions(tilemap, generator.root)
 
   return points_of_interest

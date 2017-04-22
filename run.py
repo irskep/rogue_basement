@@ -30,6 +30,7 @@ class GameLoop(DirectorLoop):
     super().terminal_init()
     terminal.set("""
     window.resizeable=true;
+    window.size=160x80;
     """)
 
   def get_initial_scene(self):
