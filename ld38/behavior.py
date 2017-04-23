@@ -205,7 +205,6 @@ class ThrowRockSlowBehavior(StandardEnemyBehavior):
     if self.entity.behavior_state['throw_rock_cooldown'] <= 0:
       self.entity.behavior_state['throw_rock_cooldown'] = 6
       path = list(self.entity.position.points_bresenham_to(self.level_state.player.position))
-      print(self.entity.position, path)
       while self.level_state.get_entity_at(path[0]) == self.entity:
         path.pop(0)
       entity_in_the_way = self.level_state.get_entity_at(path[0])
