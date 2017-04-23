@@ -1,6 +1,11 @@
 #!/usr/bin/env python
+import os
+os.environ["PYGLET_SHADOW_WINDOW"] = "false"
 from enum import Enum
 from math import floor
+from pathlib import Path
+
+import pyglet
 
 from clubsandwich.draw import draw_line_vert
 from clubsandwich.blt.nice_terminal import terminal
@@ -28,6 +33,15 @@ from .const import (
 )
 
 DEBUG_PROFILE = False
+
+
+pyglet.resource.path = [str(Path(__name__).parent.parent / 'assets')]
+tracks = [
+  pyglet.resource.media('Q1.mp3'),
+  pyglet.resource.media('Q2.mp3'),
+  pyglet.resource.media('Q3.mp3'),
+  pyglet.resource.media('Q4.mp3'),
+]
 
 
 KEYS_AND_EVENTS = [
@@ -189,6 +203,13 @@ class WinScene(UIScene):
 
 class GameScene(UIScene):
   def __init__(self, *args, **kwargs):
+    self.players = [pyglet.media.Player() for _ in range(4)]
+    for i, player in enumerate(self.players):
+      player.queue(tracks[i])
+      player.eos_action = player.EOS_LOOP
+    self.active_player = self.players[0]
+    self.active_player.play()
+
     self._mode = EnumMode.DEFAULT
     self.gamestate = GameState()
     self.log_view = LabelView(
@@ -214,6 +235,11 @@ class GameScene(UIScene):
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_died, None)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_attacking, None)
 
+  def exit(self, *args, **kwargs):
+    super().exit(*args, **kwargs)
+    for player in self.players:
+      player.delete()
+
   @property
   def mode(self):
     return self._mode
@@ -231,9 +257,22 @@ class GameScene(UIScene):
     print(text)
 
   def on_entity_moved(self, entity, data):
+    level_state = self.gamestate.active_level_state
+    cell = level_state.tilemap.cell(entity.position)
     self.log_view.text = ""
-    if self.gamestate.active_level_state.tilemap.cell(entity.position).feature == EnumFeature.STAIRS_DOWN:
+    if cell.feature == EnumFeature.STAIRS_DOWN:
       self.director.push_scene(WinScene())
+
+    if cell.annotations & {'transition-1-2', 'transition-2-3', 'transition-3-4'}:
+      if self.active_player:
+        self.active_player.pause()
+        self.active_player = None
+    
+    room = level_state.tilemap.get_room(entity.position)
+    if room and room.difficulty is not None and self.active_player is None:
+      self.active_player = self.players[room.difficulty]
+      self.active_player.seek(0)
+      self.active_player.play()
 
   def on_entity_bumped(self, entity, data):
     self.log("Oof!")

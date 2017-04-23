@@ -49,7 +49,10 @@ class RogueBasementTileMap(TileMap):
     return [self.rooms_by_id[room_id] for room_id in room.neighbor_ids]
 
   def get_room(self, point):
-    return self.rooms_by_id[self.cell(point).room_id]
+    room_id = self.cell(point).room_id
+    if room_id is None:
+      return None
+    return self.rooms_by_id[room_id]
 
 
 class LevelState:
@@ -153,6 +156,8 @@ class LevelState:
 
   def test_line_of_sight(self, source, dest):  # both args are entities
     # always fail LOS when far away
+    if source.position is None or dest.position is None:
+      return False  # someone is dead, so you can't see them of course
     if source.position.manhattan_distance_to(dest.position) > 20:
       return False
 

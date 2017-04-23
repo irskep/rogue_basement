@@ -5,6 +5,7 @@ from .const import EnumTerrain, EnumFeature, EnumMonsterMode
 from clubsandwich.blt.nice_terminal import terminal
 from clubsandwich.draw import LINE_STYLES
 from clubsandwich.geom import Rect, Point
+from clubsandwich.tilemap import CellOutOfBoundsError
 
 
 C_DEFAULT = '#ffffff'
@@ -36,6 +37,8 @@ def _draw_game(gamestate, bounds, ctx):
     try:
       cell = level_state.tilemap.cell(point)
     except IndexError:
+      continue
+    except CellOutOfBoundsError:
       continue
     char = ' '
     color = C_DEFAULT
