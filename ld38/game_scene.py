@@ -203,12 +203,16 @@ class WinScene(UIScene):
 
 class GameScene(UIScene):
   def __init__(self, *args, **kwargs):
+    self.player_volume_directions = ['up', 'down', 'down', 'down']
+
     self.players = [pyglet.media.Player() for _ in range(4)]
     for i, player in enumerate(self.players):
       player.queue(tracks[i])
       player.eos_action = player.EOS_LOOP
-    self.active_player = self.players[0]
-    self.active_player.play()
+      if i == 0:
+        player.play()
+      else:
+        player.volume = 0
 
     self._mode = EnumMode.DEFAULT
     self.gamestate = GameState()
@@ -264,15 +268,12 @@ class GameScene(UIScene):
       self.director.push_scene(WinScene())
 
     if cell.annotations & {'transition-1-2', 'transition-2-3', 'transition-3-4'}:
-      if self.active_player:
-        self.active_player.pause()
-        self.active_player = None
+      self.player_volume_directions = ['down', 'down', 'down', 'down']
     
     room = level_state.tilemap.get_room(entity.position)
-    if room and room.difficulty is not None and self.active_player is None:
-      self.active_player = self.players[room.difficulty]
-      self.active_player.seek(0)
-      self.active_player.play()
+    if room and room.difficulty is not None:
+      self.player_volume_directions = ['down', 'down', 'down', 'down']
+      self.player_volume_directions[room.difficulty] = 'up'
 
   def on_entity_bumped(self, entity, data):
     self.log("Oof!")
@@ -337,6 +338,19 @@ class GameScene(UIScene):
 
   def terminal_update(self, is_active=True):
     if DEBUG_PROFILE: pr.enable()
+    for (i, direction, player) in zip(range(4), self.player_volume_directions, self.players):
+      if direction == 'down' and player.volume > 0:
+        player.volume = max(0, player.volume - 0.05)
+        if player.volume == 0:
+          player.pause()
+          player.seek(0)
+      elif direction == 'up' and player.volume < 1:
+        was_zero = player.volume == 0
+        player.volume = min(1, player.volume + 0.05)
+        if was_zero:
+          player.volume = 1
+          player.play()
+
     super().terminal_update(is_active)
     self.gamestate.active_level_state.consume_events()
     if DEBUG_PROFILE: pr.disable()
