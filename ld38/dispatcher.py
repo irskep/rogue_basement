@@ -4,6 +4,7 @@ from enum import Enum
 class EventDispatcher:
   def __init__(self):
     self.handlers = {}
+    self._force_abandon_current_events = False
 
   def register_event_type(self, name):
     if isinstance(name, Enum):
@@ -28,3 +29,6 @@ class EventDispatcher:
       if entity is None or inner_entity is None or entity is inner_entity:
         method = getattr(obj, method_name)
         method(entity, data)
+      if self._force_abandon_current_events:
+        self._force_abandon_current_events = False
+        break

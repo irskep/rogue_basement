@@ -213,6 +213,11 @@ class LevelState:
       list(entity.position.neighbors) + list(entity.position.diagonal_neighbors)
       if self.get_can_move(entity, p, allow_player=True)]
 
+  def _fire_player_took_action_if_alive(self, position):
+    if self.player.position is None:
+      return
+    self.fire(EnumEventNames.player_took_action, data=position, entity=None)
+
   def action_close(self, entity, position):
     try:
       cell = self.tilemap.cell(position)
@@ -221,7 +226,7 @@ class LevelState:
     if cell.terrain != EnumTerrain.DOOR_OPEN:
       return False
     cell.terrain = EnumTerrain.DOOR_CLOSED
-    self.fire(EnumEventNames.player_took_action, data=position, entity=None)
+    self._fire_player_took_action_if_alive(position)
     return True
 
   def action_player_move(self, entity, position):
@@ -230,7 +235,7 @@ class LevelState:
     target_entity = self.get_entity_at(position)
     if target_entity:
       self.action_attack(entity, target_entity)
-      self.fire(EnumEventNames.player_took_action, data=position, entity=None)
+      self._fire_player_took_action_if_alive(position)
       return True
 
     if self.get_can_move(entity, position):
@@ -238,11 +243,11 @@ class LevelState:
       entity.position = position
       self.entity_by_position[position] = entity
       self.fire(EnumEventNames.entity_moved, data=entity, entity=entity)
-      self.fire(EnumEventNames.player_took_action, data=position, entity=None)
+      self._fire_player_took_action_if_alive(position)
       return True
     elif cell.terrain == EnumTerrain.DOOR_CLOSED and self.get_can_open_door(entity):
       self.open_door(entity, position)
-      self.fire(EnumEventNames.player_took_action, data=position, entity=None)
+      self._fire_player_took_action_if_alive(position)
       return True
     else:
       self.fire(EnumEventNames.entity_bumped, data=cell, entity=entity)
@@ -283,6 +288,9 @@ class LevelState:
     if b.state['hp'] <= 0:
       self.fire(EnumEventNames.entity_died, data=None, entity=b)
       self.remove_entity(b)
+      if b.is_player:
+        print("Aborting all events due to player death")
+        self.dispatcher._force_abandon_current_events = True
 
   def open_door(self, entity, position):
     # this is where the logic goes for doors that are hard to open.

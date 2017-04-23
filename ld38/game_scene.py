@@ -77,6 +77,20 @@ Close: c
 """.strip()
 
 
+TEXT_GAME_OVER = """
+      __.      
+    _/ / \\
+   /   \\  *      ______________________________________
+──/─────\\──     / Ah, well... another body to feed the \\
+  \\ - - /    --/  mutated skunks...                    |
+&  \\ - /  &    \\_______________________________________/ 
+ \\───+───/
+     |
+\\────|────/
+_\\       /_
+"""[1:].rstrip()
+
+
 if DEBUG_PROFILE:
   import cProfile
   pr = cProfile.Profile()
@@ -101,13 +115,17 @@ class GameView(View):
   def __init__(self, gamestate, *args, **kwargs):
     self.gamestate = gamestate
     super().__init__(*args, **kwargs)
+    self.last_known_player_position = Point(0, 0)
 
   def draw(self, ctx):
+    current_player_position = self.gamestate.active_level_state.player.position  
+    if current_player_position is not None:
+      self.last_known_player_position = current_player_position
     half_size = (self.bounds.size / 2).floored
     draw_game(
       self.gamestate,
       bounds=Rect(
-        self.gamestate.active_level_state.player.position - half_size,
+        self.last_known_player_position - half_size,
         self.bounds.size),
       ctx=ctx)
 
@@ -171,9 +189,9 @@ class LoseScene(UIScene):
       'Game Over',
       layout_options=LayoutOptions.centered(80, 30),
       subviews=[
-          LabelView('You have died.', layout_options=LayoutOptions(height=1, top=1, bottom=None)),
+          LabelView(TEXT_GAME_OVER, layout_options=LayoutOptions.centered('intrinsic', 'intrinsic')),
           ButtonView(
-              text='Darn.', callback=self.done,
+              text='Aaauuuuggghhhhhh...', callback=self.done,
               layout_options=LayoutOptions.row_bottom(3)),
       ])
     super().__init__(view, *args, **kwargs)

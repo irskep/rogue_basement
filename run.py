@@ -32,11 +32,35 @@ HALF_WINDOW_SIZE = (Size(80, 25) / 2).floored
 LOGO = """
 .-,--.                  ,-,---.                           .  
  `|__/ ,-. ,-. . . ,-.   '|___/ ,-. ,-. ,-. ,-,-. ,-. ,-. |- 
- )| \  | | | | | | |-'   ,|   \ ,-| `-. |-' | | | |-' | | |  
+ )| \\  | | | | | | |-'   ,|   \\ ,-| `-. |-' | | | |-' | | |
  `'  ` `-' `-| `-^ `-'  `-^---' `-^ `-' `-' ' ' ' `-' ' ' `' 
             ,|                                               
-            `'       
+            `'
+
+
+
+      __.        ___________________________________________
+    _/ / \\      / Hello there! I'm in a bit of a pickle.    \\
+   /   \\  *     | Yesterday I was doing some experiments    |
+──/─────\\──     | in the basement, and I may have...        |
+  \\ - - /    ──/  ...accidentally...opened a portal to the  |
+&  \\ - /  &     | nethervoid. Could you just pop down there |
+ \\───+───/      | and close it up for me? It'll be easy!    |
+     |          \\___________________________________________/
+\\────|────/
+_\\       /_
 """
+
+
+ABOUT = """
+Rogue Basement is a roguelike with a "small world," i.e. a single
+idiot wizard's basement.
+
+Note that while you can resize the window, it might slow things
+down a lot, because this game is very poorly optimized.
+
+Use <tab> and <return> to navigate menus.
+""".strip()
 
 
 class GameLoop(DirectorLoop):
@@ -61,8 +85,12 @@ class MainMenuScene(UIScene):
       LabelView(
         LOGO[1:].rstrip(),
         layout_options=LayoutOptions.row_top(0.5)),
+      LabelView(
+        ABOUT,
+        color_fg='#ffcb00',
+        layout_options=LayoutOptions.centered('intrinsic', 'intrinsic').with_updates(top=28)),
       ButtonView(
-        text="Play", callback=self.play,
+        text="Descend the stairs", callback=self.play,
         layout_options=LayoutOptions.row_bottom(10).with_updates(
           left=0.2, width=0.2, right=None)),
       ButtonView(
