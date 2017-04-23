@@ -19,6 +19,7 @@ from .gamestate import GameState
 from .const import (
   EnumEventNames,
   EnumMode,
+  EnumFeature,
   ENTITY_NAME_BY_KIND,
   KEYS_U, KEYS_D, KEYS_L, KEYS_R, KEYS_UL, KEYS_UR, KEYS_DL, KEYS_DR,
   KEYS_WAIT,
@@ -150,7 +151,7 @@ class PauseScene(UIScene):
     self.director.pop_to_first_scene()
 
 
-class GameOverScene(UIScene):
+class LoseScene(UIScene):
   def __init__(self, *args, **kwargs):
     view = WindowView(
       'Game Over',
@@ -159,6 +160,25 @@ class GameOverScene(UIScene):
           LabelView('You have died.', layout_options=LayoutOptions(height=1, top=1, bottom=None)),
           ButtonView(
               text='Darn.', callback=self.done,
+              layout_options=LayoutOptions.row_bottom(3)),
+      ])
+    super().__init__(view, *args, **kwargs)
+
+  def done(self):
+    self.director.pop_to_first_scene()
+
+
+class WinScene(UIScene):
+  def __init__(self, *args, **kwargs):
+    view = WindowView(
+      'You win!',
+      layout_options=LayoutOptions.centered(80, 30),
+      subviews=[
+          LabelView(
+            'You close the portal. Good job.',
+            layout_options=LayoutOptions(height=1, top=1, bottom=None)),
+          ButtonView(
+              text='Thanks!', callback=self.done,
               layout_options=LayoutOptions.row_bottom(3)),
       ])
     super().__init__(view, *args, **kwargs)
@@ -212,6 +232,8 @@ class GameScene(UIScene):
 
   def on_entity_moved(self, entity, data):
     self.log_view.text = ""
+    if self.gamestate.active_level_state.tilemap.cell(entity.position).feature == EnumFeature.STAIRS_DOWN:
+      self.director.push_scene(WinScene())
 
   def on_entity_bumped(self, entity, data):
     self.log("Oof!")
@@ -244,7 +266,7 @@ class GameScene(UIScene):
       print("Missing log message for", entity.monster_type.id)
     if entity == self.gamestate.active_level_state.player:
       if DEBUG_PROFILE: pr.dump_stats('profile')
-      self.director.push_scene(GameOverScene())
+      self.director.push_scene(LoseScene())
 
   def terminal_read(self, val):
     if DEBUG_PROFILE: pr.enable()

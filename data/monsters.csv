@@ -4,7 +4,7 @@ verp_1,v,ffff00,0.00,1.00,beeline_visible|random_walk,10.00,2.00,
 verp_2,v,ff8800,1.00,1.00,beeline_visible|random_walk,20.00,4.00,
 verp_3,v,ff0000,2.00,1.00,beeline_target|random_walk,30.00,8.00,
 verp_4,v,aa0044,3.00,1.00,beeline_target|random_walk,40.00,16.00,
-wibble,r,#90582c,0.00,20,range_5_visible|throw_rock_slow|sleep,10,1,rockx5
+wibble,w,#90582c,0.00,20,range_5_visible|throw_rock_slow|sleep,10,1,rockx5
 mage_ice,m,#72c3cb,2,0.10,range_5_visible|sleep,10.00,1.00,inf_icex2
 mage_wind,m,#d0d6ce,1,0.10,range_7_visible|sleep,10.00,1.00,inf_windx2
 rock_in_flight,*,#c1a073,-1,0,path_until_hit,2,2,
