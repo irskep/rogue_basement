@@ -205,6 +205,7 @@ class ThrowRockSlowBehavior(StandardEnemyBehavior):
     if self.entity.behavior_state['throw_rock_cooldown'] <= 0:
       self.entity.behavior_state['throw_rock_cooldown'] = 6
       path = list(self.entity.position.points_bresenham_to(self.level_state.player.position))
+      print(self.entity.position, path)
       while self.level_state.get_entity_at(path[0]) == self.entity:
         path.pop(0)
       entity_in_the_way = self.level_state.get_entity_at(path[0])
@@ -213,7 +214,7 @@ class ThrowRockSlowBehavior(StandardEnemyBehavior):
         return False
 
       self.level_state.create_entity(MONSTER_TYPES_BY_ID['ROCK_IN_FLIGHT'], path[0], {
-        'path': path[1:],
+        'path': [None] + path[1:],  # behavior executes immediately but rock is already placed
         'speed': self.rock_speed,
       })
 
@@ -228,6 +229,10 @@ class PathUntilHitBehavior(StandardEnemyBehavior):
       return True
 
     next_point = self.entity.behavior_state['path'].pop(0)
+    if next_point is None:
+      # this is basically a "wait" instruction
+      return True
+
     entity_to_hit = self.level_state.get_entity_at(next_point)
     if entity_to_hit:
       p = entity_to_hit.position

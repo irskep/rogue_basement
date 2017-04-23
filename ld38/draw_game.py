@@ -83,10 +83,13 @@ def _draw_game(gamestate, bounds, ctx):
         color = C_STAIRS_DOWN
         char = '>'
 
-    if cell.point in level_state.item_by_position:
-      item = level_state.item_by_position[cell.point]
-      color = item.item_type.color
-      char = item.item_type.char
+    items = level_state.items_by_position.get(cell.point, None)
+    if items:
+      for i, item in enumerate(items):
+        ctx.layer(i)
+        color = item.item_type.color
+        char = item.item_type.char
+      ctx.layer(0)
 
     if cell.point in entity_cache:
       entity = entity_cache[cell.point]

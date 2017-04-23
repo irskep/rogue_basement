@@ -59,7 +59,7 @@ class LevelState:
     self.entities = []
     self.event_queue = deque()
     self.entity_by_position = {}
-    self.item_by_position = {}
+    self.items_by_position = {}
     self._is_applying_events = False
 
     self.dispatcher = EventDispatcher()
@@ -117,17 +117,17 @@ class LevelState:
 
   def pickup_item(self, entity):
     try:
-      item = self.item_by_position[entity.position]
+      items = self.items_by_position[entity.position]
     except KeyError:
       return False
     item.position = None
-    entity.inventory.append(item)
-    del self.item_by_position[entity.position]
+    entity.inventory.extend(items)
+    del self.items_by_position[entity.position]
     self.fire(EnumEventNames.entity_picked_up_item, data=item, entity=entity)
 
   def drop_item(self, item, point, entity=None):
-    assert point not in self.item_by_position
-    self.item_by_position[point] = item
+    self.items_by_position.setdefault(point, [])
+    self.items_by_position[point].append(item)
     if entity is not None:
       self.fire(EnumEventNames.entity_dropped_item, data=item, entity=entity)
     return True
@@ -169,7 +169,7 @@ class LevelState:
 
   def get_item_at(self, position):
     try:
-      return self.item_by_position[position]
+      return self.items_by_position[position]
     except KeyError:
       return None
 
