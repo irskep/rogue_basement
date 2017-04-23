@@ -19,8 +19,8 @@ class Entity:
     self.behaviors = []
     self.mode = None
 
-  def add_behavior(self, factory):
-    self.behaviors.append(factory(self))
+  def add_behavior(self, behavior):
+    self.behaviors.append(behavior)
 
   def __repr__(self):
     return self.__class__.__name__

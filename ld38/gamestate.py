@@ -5,7 +5,12 @@ from clubsandwich.geom import Size, Point
 from clubsandwich.tilemap import TileMap, Cell, CellOutOfBoundsError
 
 from .entity import Entity, Player
-from .behavior import KeyboardMovementBehavior, RandomWalkBehavior, BeelineBehavior
+from .behavior import (
+  KeyboardMovementBehavior,
+  RandomWalkBehavior,
+  BeelineBehavior,
+  CompositeBehavior,
+)
 from .level_generator import generate_dungeon
 from .const import EnumEntityKind, EnumEventNames, EnumTerrain
 from .dispatcher import EventDispatcher
@@ -59,7 +64,7 @@ class LevelState:
 
     self.player = Player()
     self.player.position = self.tilemap.points_of_interest['stairs_up']
-    self.player.add_behavior(lambda entity: KeyboardMovementBehavior(entity, self))
+    self.player.add_behavior(KeyboardMovementBehavior(self.player, self))
     self.add_entity(self.player)
 
     for monster_data in self.tilemap.points_of_interest['monsters']:
@@ -68,7 +73,10 @@ class LevelState:
       entity.state = {'hp': entity.stats['hp_max']}
       entity.position = monster_data.position
       if entity.kind == EnumEntityKind.VERP:
-        entity.add_behavior(lambda entity: BeelineBehavior(entity, self))
+        entity.add_behavior(CompositeBehavior(entity, self, [
+          BeelineBehavior(entity, self),
+          RandomWalkBehavior(entity, self),
+        ]))
       self.add_entity(entity)
 
   def add_entity(self, entity):
@@ -122,6 +130,9 @@ class LevelState:
     cell = self.tilemap.cell(position)
     return get_is_terrain_passable(cell.terrain)
 
+  def get_can_open_door(self, entity):
+    return entity.kind == EnumEntityKind.PLAYER
+
   def action_close(self, entity, position):
     try:
       cell = self.tilemap.cell(position)
@@ -132,23 +143,37 @@ class LevelState:
     cell.terrain = EnumTerrain.DOOR_CLOSED
     self.fire(EnumEventNames.player_took_action, data=position, entity=None)
     return True
-    
 
-  def move(self, entity, position):
+  def action_player_move(self, entity, position):
     cell = self.tilemap.cell(position)
     if self.get_can_move(entity, position):
       del self.entity_by_position[entity.position]
       entity.position = position
       self.entity_by_position[position] = entity
       self.fire(EnumEventNames.entity_moved, data=entity, entity=entity)
-      if entity is self.player:
-        self.fire(EnumEventNames.player_took_action, data=position, entity=None)
-    elif cell.terrain == EnumTerrain.DOOR_CLOSED:
+      self.fire(EnumEventNames.player_took_action, data=position, entity=None)
+      return True
+    elif cell.terrain == EnumTerrain.DOOR_CLOSED and self.get_can_open_door(entity):
       self.open_door(entity, position)
-      if entity is self.player:
-        self.fire(EnumEventNames.player_took_action, data=position, entity=None)
+      self.fire(EnumEventNames.player_took_action, data=position, entity=None)
+      return True
     else:
       self.fire(EnumEventNames.entity_bumped, data=cell, entity=entity)
+      return False
+
+  def action_monster_move(self, entity, position):
+    cell = self.tilemap.cell(position)
+    if self.get_can_move(entity, position):
+      del self.entity_by_position[entity.position]
+      entity.position = position
+      self.entity_by_position[position] = entity
+      self.fire(EnumEventNames.entity_moved, data=entity, entity=entity)
+      return True
+    elif cell.terrain == EnumTerrain.DOOR_CLOSED and self.get_can_open_door(entity):
+      self.open_door(entity, position)
+      return True
+    else:
+      return False
 
   def open_door(self, entity, position):
     # this is where the logic goes for doors that are hard to open.

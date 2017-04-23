@@ -48,14 +48,47 @@ class KeyboardMovementBehavior(Behavior):
       EnumEventNames.key_dr,
     ])
 
-  def on_key_u(self, data): self.level_state.move(self.entity, self.entity.position + Point(0, -1))
-  def on_key_d(self, data): self.level_state.move(self.entity, self.entity.position + Point(0, 1))
-  def on_key_l(self, data): self.level_state.move(self.entity, self.entity.position + Point(-1, 0))
-  def on_key_r(self, data): self.level_state.move(self.entity, self.entity.position + Point(1, 0))
-  def on_key_ul(self, data): self.level_state.move(self.entity, self.entity.position + Point(-1, -1))
-  def on_key_ur(self, data): self.level_state.move(self.entity, self.entity.position + Point(1, -1))
-  def on_key_dl(self, data): self.level_state.move(self.entity, self.entity.position + Point(-1, 1))
-  def on_key_dr(self, data): self.level_state.move(self.entity, self.entity.position + Point(1, 1))
+  def on_key_u(self, data):
+    self.level_state.action_player_move(self.entity, self.entity.position + Point(0, -1))
+  def on_key_d(self, data):
+    self.level_state.action_player_move(self.entity, self.entity.position + Point(0, 1))
+  def on_key_l(self, data):
+    self.level_state.action_player_move(self.entity, self.entity.position + Point(-1, 0))
+  def on_key_r(self, data):
+    self.level_state.action_player_move(self.entity, self.entity.position + Point(1, 0))
+  def on_key_ul(self, data):
+    self.level_state.action_player_move(self.entity, self.entity.position + Point(-1, -1))
+  def on_key_ur(self, data):
+    self.level_state.action_player_move(self.entity, self.entity.position + Point(1, -1))
+  def on_key_dl(self, data):
+    self.level_state.action_player_move(self.entity, self.entity.position + Point(-1, 1))
+  def on_key_dr(self, data):
+    self.level_state.action_player_move(self.entity, self.entity.position + Point(1, 1))
+
+
+class CompositeBehavior(Behavior):
+  def __init__(self, entity, level_state, sub_behaviors):
+    self.sub_behaviors = sub_behaviors
+    event_names = set()
+    for b in sub_behaviors:
+      event_names = event_names | set(b.event_names)
+    for e in event_names:
+      setattr(self, 'on_' + e.value, self.get_handler(e))
+    super().__init__(entity, level_state, list(event_names))
+
+  def get_handler(self, e):
+    k = 'on_' + e.value
+    methods = [
+      getattr(b, k)
+      for b in self.sub_behaviors
+      if hasattr(b, k)]
+
+    def handler(data):
+      for method in methods:
+        if method(data):
+          return True
+      return False
+    return handler
 
 
 class RandomWalkBehavior(Behavior):
@@ -65,23 +98,23 @@ class RandomWalkBehavior(Behavior):
   def on_player_took_action(self, data):
     self.entity.mode = EnumMonsterMode.DEFAULT
     possibilities = [
-      poss for poss in [
-      self.entity.position + p for p in [
-        Point(0, -1), Point(0, 1), Point(-1, 0), Point(1, 0)]
-      ] if self.level_state.get_can_move(self.entity, poss)
+      p for p in
+      list(self.entity.position.neighbors) + list(self.entity.position.diagonal_neighbors)
+      if self.level_state.get_can_move(self.entity, p)
     ]
     if not possibilities:
-      return
-    self.level_state.move(self.entity, random.choice(possibilities))
+      return False
+    self.level_state.action_monster_move(self.entity, random.choice(possibilities))
+    return True
 
 
 class BeelineBehavior(RandomWalkBehavior):
   def on_player_took_action(self, data):
     if self.entity.position.manhattan_distance_to(self.level_state.player.position) > 20:
-      return super().on_player_took_action(data)
+      return False
 
     if not self.level_state.test_line_of_sight(self.entity, self.level_state.player):
-      return super().on_player_took_action(data)
+      return False
 
     candidates = [
       p for p in
@@ -89,7 +122,7 @@ class BeelineBehavior(RandomWalkBehavior):
       if self.level_state.tilemap.contains_point(p)]
 
     if not candidates:
-      return super().on_player_took_action(data)
+      return False
 
     self.entity.mode = EnumMonsterMode.CHASING_PLAYER
 
@@ -101,5 +134,6 @@ class BeelineBehavior(RandomWalkBehavior):
         best_distance = distance
         best_point = point
     
-    self.level_state.move(self.entity, best_point)
+    self.level_state.action_monster_move(self.entity, best_point)
+    return True
     
