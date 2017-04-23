@@ -2,6 +2,7 @@
 from enum import Enum
 
 from clubsandwich.draw import draw_line_vert
+from clubsandwich.blt.nice_terminal import terminal
 from clubsandwich.geom import Size, Point, Rect
 from clubsandwich.ui import (
   LabelView,
@@ -9,6 +10,7 @@ from clubsandwich.ui import (
   LayoutOptions,
   UIScene,
   View,
+  WindowView,
 )
 
 from .draw_game import draw_game
@@ -29,6 +31,8 @@ from .const import (
   KEYS_CANCEL
 )
 
+DEBUG_PROFILE = False
+
 
 KEYS_AND_EVENTS = [
   (KEYS_U, EnumEventNames.key_u),
@@ -47,8 +51,8 @@ KEYS_AND_DIRECTIONS = [
   (KEYS_L, Point(-1, 0)),
   (KEYS_R, Point(1, 0)),
   (KEYS_UL, Point(-1, -1)),
-  (KEYS_UR, Point(-1, 1)),
-  (KEYS_DL, Point(1, -1)),
+  (KEYS_UR, Point(1, -1)),
+  (KEYS_DL, Point(-1, 1)),
   (KEYS_DR, Point(1, 1)),
 ]
 
@@ -61,6 +65,11 @@ Move: arrows, numpad
 
 Close: c
 """.strip()
+
+
+if DEBUG_PROFILE:
+  import cProfile
+  pr = cProfile.Profile()
 
 
 class GameView(View):
@@ -86,12 +95,30 @@ class StatsView(View):
       text="Stats",
       color_fg='#ffffff',
       color_bg='#660000',
+      clear=True,
       layout_options=LayoutOptions.row_top(1).with_updates(right=1)))
 
 
   def draw(self, ctx):
-    ctx.color('#ffffff')
-    draw_line_vert(Point(self.bounds.x2, self.bounds.y), self.bounds.height)
+    with ctx.temporary_fg('#ffffff'):
+      draw_line_vert(Point(self.bounds.x2, self.bounds.y), self.bounds.height)
+
+
+class GameOverScene(UIScene):
+  def __init__(self, *args, **kwargs):
+    view = WindowView(
+      'Game Over',
+      layout_options=LayoutOptions.centered(80, 30),
+      subviews=[
+          LabelView('You have died.', layout_options=LayoutOptions(height=1, top=1, bottom=None)),
+          ButtonView(
+              text='Darn.', callback=self.done,
+              layout_options=LayoutOptions.row_bottom(3)),
+      ])
+    super().__init__(view, *args, **kwargs)
+
+  def done(self):
+    self.director.pop_to_first_scene()
 
 
 class GameScene(UIScene):
@@ -99,7 +126,7 @@ class GameScene(UIScene):
     self._mode = EnumMode.DEFAULT
     self.gamestate = GameState()
     self.log_view = LabelView(
-      text="", align_horz='left', color_bg='#333333',
+      text="", align_horz='left', color_bg='#333333', clear=True,
       layout_options=LayoutOptions.row_bottom(1).with_updates(left=SIDEBAR_WIDTH))
     help_view = LabelView(
       text=TEXT_HELP, align_horz='left',
@@ -116,6 +143,7 @@ class GameScene(UIScene):
     level_state.dispatcher.add_subscriber(self, EnumEventNames.door_open, level_state.player)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_bumped, level_state.player)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_moved, level_state.player)
+    level_state.dispatcher.add_subscriber(self, EnumEventNames.player_died, None)
 
   @property
   def mode(self):
@@ -142,9 +170,17 @@ class GameScene(UIScene):
   def on_door_open(self, data):
     self.log("You open the door.")
 
+  def on_player_died(self, data):
+    if DEBUG_PROFILE: pr.dump_stats('profile')
+    self.log("You have died.")
+    self.director.push_scene(GameOverScene())
+
   def terminal_read(self, val):
+    if DEBUG_PROFILE: pr.enable()
     level_state = self.gamestate.active_level_state
     if self.mode == EnumMode.DEFAULT:
+      if val == terminal.TK_Q:
+        level_state.action_die()
       for keys, event_name in KEYS_AND_EVENTS:
         if val in keys:
           level_state.fire(event_name)
@@ -160,9 +196,13 @@ class GameScene(UIScene):
           else:
             self.log("There is no door there.")
           self.mode = EnumMode.DEFAULT
+          if DEBUG_PROFILE: pr.disable()
           return
+      if DEBUG_PROFILE: pr.disable()
       self.log("Invalid direction")
 
   def terminal_update(self, is_active=True):
+    if DEBUG_PROFILE: pr.enable()
     super().terminal_update(is_active)
     self.gamestate.active_level_state.consume_events()
+    if DEBUG_PROFILE: pr.disable()

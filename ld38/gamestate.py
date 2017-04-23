@@ -181,6 +181,9 @@ class LevelState:
     cell.terrain = EnumTerrain.DOOR_OPEN
     self.fire(EnumEventNames.door_open, data=cell, entity=entity)
 
+  def action_die(self):
+    self.fire(EnumEventNames.player_died)
+
 
 class GameState:
   def __init__(self):

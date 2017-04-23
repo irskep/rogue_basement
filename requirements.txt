@@ -1,13 +1,4 @@
 appdirs==1.4.3
-astroid==1.5.2
 bearlibterminal==0.15.2
--e git+git@github.com:irskep/clubsandwich.git@e29722c24086e5006660a1663ce496546b52e8a6#egg=clubsandwich
-isort==4.2.5
-lazy-object-proxy==1.2.2
-mccabe==0.6.1
-packaging==16.8
+-e git+git@github.com:irskep/clubsandwich.git@master#egg=clubsandwich
 pyglet==1.2.4
-pylint==1.7.1
-pyparsing==2.2.0
-six==1.10.0
-wrapt==1.10.10

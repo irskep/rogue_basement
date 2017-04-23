@@ -100,5 +100,5 @@ def _draw_game(gamestate, bounds, ctx):
     except KeyError:
       pass
 
-    ctx.color(color)
-    ctx.put(cell.point, char)
+    with ctx.temporary_fg(color):
+      ctx.put(cell.point, char)

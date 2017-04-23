@@ -62,6 +62,7 @@ class EnumEventNames(Enum):
   entity_bumped = "entity_bumped"
   door_open = "door_open"
   player_took_action = "player_took_action"
+  player_died = "player_died"
 
 
 KEYS_U = (terminal.TK_UP, terminal.TK_K, terminal.TK_KP_8)
