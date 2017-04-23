@@ -17,8 +17,12 @@ C_TRANSITION_2_3 = '#00ff88'
 C_TRANSITION_3_4 = '#00ffff'
 
 C_PLAYER = '#ffffff'
-C_VERP = '#ff0000'
-C_VERP_CHASING = '#ff8800'
+C_VERP = {
+  10: '#ffff00',
+  20: '#ff8800',
+  30: '#ff0000',
+  40: '#aa0066',
+}
 
 
 def draw_game(gamestate, bounds, ctx):
@@ -87,18 +91,14 @@ def _draw_game(gamestate, bounds, ctx):
         color = C_STAIRS_DOWN
         char = '>'
 
-    try:
+    if cell.point in entity_cache:
       entity = entity_cache[cell.point]
       if entity.kind == EnumEntityKind.PLAYER:
         color = C_PLAYER
         char = '@'
       if entity.kind == EnumEntityKind.VERP:
-        color = C_VERP
+        color = C_VERP[entity.stats['hp_max']]
         char = 'v'
-        if entity.mode == EnumMonsterMode.CHASING_PLAYER:
-          color = C_VERP_CHASING
-    except KeyError:
-      pass
 
     with ctx.temporary_fg(color):
       ctx.put(cell.point, char)
