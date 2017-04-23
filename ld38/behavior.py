@@ -8,7 +8,15 @@ from clubsandwich.geom import Size, Point
 from clubsandwich.tilemap import TileMap
 
 from .level_generator import generate_dungeon
-from .const import EnumEntityKind, EnumEventNames, EnumTerrain, EnumMonsterMode
+from .const import EnumEventNames, EnumTerrain, EnumMonsterMode
+
+
+BEHAVIORS_BY_ID = {}
+def behavior(behavior_id):
+  def dec(cls):
+    BEHAVIORS_BY_ID[behavior_id] = cls
+    return cls
+  return dec
 
 
 class Behavior:
@@ -35,6 +43,7 @@ class Behavior:
       dispatcher.remove_subscriber(self, name, self.entity if self.is_local_to_entity else False)
 
 
+@behavior('keyboard_movement')
 class KeyboardMovementBehavior(Behavior):
   def __init__(self, entity, level_state):
     super().__init__(entity, level_state, [
@@ -91,6 +100,7 @@ class CompositeBehavior(Behavior):
     return handler
 
 
+@behavior('random_walk')
 class RandomWalkBehavior(Behavior):
   def __init__(self, entity, level_state):
     super().__init__(entity, level_state, [EnumEventNames.player_took_action])
@@ -108,6 +118,8 @@ class RandomWalkBehavior(Behavior):
     return True
 
 
+@behavior('beeline_visible')
+@behavior('beeline_target')  # temporary
 class BeelineBehavior(RandomWalkBehavior):
   def on_player_took_action(self, entity, data):
     if self.entity.position.manhattan_distance_to(self.level_state.player.position) > 20:

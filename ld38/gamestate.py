@@ -4,15 +4,13 @@ from uuid import uuid4
 from clubsandwich.geom import Size, Point
 from clubsandwich.tilemap import TileMap, Cell, CellOutOfBoundsError
 
-from .entity import Entity, Player
+from .entity import Entity
 from .behavior import (
-  KeyboardMovementBehavior,
-  RandomWalkBehavior,
-  BeelineBehavior,
   CompositeBehavior,
+  BEHAVIORS_BY_ID,
 )
 from .level_generator import generate_dungeon
-from .const import EnumEntityKind, EnumEventNames, EnumTerrain
+from .const import EnumEventNames, EnumTerrain, MONSTER_TYPES_BY_ID
 from .dispatcher import EventDispatcher
 
 
@@ -62,22 +60,29 @@ class LevelState:
     for name in EnumEventNames:
       self.dispatcher.register_event_type(name)
 
-    self.player = Player()
-    self.player.position = self.tilemap.points_of_interest['stairs_up']
-    self.player.add_behavior(KeyboardMovementBehavior(self.player, self))
-    self.add_entity(self.player)
+    self.player = None
+    self.player = self.create_entity(
+      MONSTER_TYPES_BY_ID['PLAYER'],
+      self.tilemap.points_of_interest['stairs_up'])
 
     for monster_data in self.tilemap.points_of_interest['monsters']:
-      entity = Entity(kind=monster_data.kind)
-      entity.stats = {'hp_max': 10 * (monster_data.difficulty + 1), 'strength': 2}
-      entity.state = {'hp': entity.stats['hp_max']}
-      entity.position = monster_data.position
-      if entity.kind == EnumEntityKind.VERP:
-        entity.add_behavior(CompositeBehavior(entity, self, [
-          BeelineBehavior(entity, self),
-          RandomWalkBehavior(entity, self),
-        ]))
-      self.add_entity(entity)
+      self.create_entity(monster_data.monster_type, monster_data.position)
+
+  def create_entity(self, monster_type, position):
+    mt = monster_type
+    if mt.id == 'PLAYER':
+      assert self.player is None
+
+    entity = Entity(monster_type=mt)
+    entity.position = position
+    if len(mt.behaviors) == 1:
+      entity.add_behavior(BEHAVIORS_BY_ID[mt.behaviors[0]](entity, self))
+    else:
+      entity.add_behavior(CompositeBehavior(entity, self, [
+        BEHAVIORS_BY_ID[behavior_id](entity, self)
+        for behavior_id in mt.behaviors]))
+    self.add_entity(entity)
+    return entity
 
   def add_entity(self, entity):
     self.entities.append(entity)
@@ -129,7 +134,10 @@ class LevelState:
     if position in self.entity_by_position:
       return False
 
-    cell = self.tilemap.cell(position)
+    try:
+      cell = self.tilemap.cell(position)
+    except CellOutOfBoundsError:
+      return False
     return get_is_terrain_passable(cell.terrain)
 
   def get_can_see(self, entity, position):
@@ -137,7 +145,7 @@ class LevelState:
     return get_is_terrain_passable(cell.terrain)
 
   def get_can_open_door(self, entity):
-    return entity.kind == EnumEntityKind.PLAYER
+    return entity.is_player
 
   def action_close(self, entity, position):
     try:

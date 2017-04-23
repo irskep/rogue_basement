@@ -1,3 +1,6 @@
-Shape,Difficulty,Monsters,Chance,Color
-box_random,*,"verp_1,verp_2,verp_3,verp_4",1,#666666
-box_full,*,"verp_1,verp_2,verp_3,verp_4",0.2,#6666ff
+Shape,Difficulty,Monsters,Chance,Color,Monster density,
+box_random,0,verp_1,1.00,666666.00,5,
+box_random,1,verp_2,1.00,886666,5,
+box_random,2,verp_3,1.00,668866,5,
+box_random,3,verp_4,1.00,886688,5,
+box_full,*,verp_1|verp_2|verp_3|verp_4,0.20,6666ff,2,

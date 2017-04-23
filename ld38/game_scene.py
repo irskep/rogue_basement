@@ -200,12 +200,12 @@ class GameScene(UIScene):
     self.log("You open the door.")
 
   def on_entity_attacking(self, entity, data):
-    name1 = ENTITY_NAME_BY_KIND[entity.kind].subject
-    name2 = ENTITY_NAME_BY_KIND[data.kind].object
+    name1 = ENTITY_NAME_BY_KIND[entity.monster_type.id].subject
+    name2 = ENTITY_NAME_BY_KIND[data.monster_type.id].object
     self.log("{} hits {}.".format(name1, name2))
 
   def on_entity_died(self, entity, data):
-    name = ENTITY_NAME_BY_KIND[entity.kind]
+    name = ENTITY_NAME_BY_KIND[entity.monster_type.id]
     self.log("{} {}.".format(name.subject, name.death_verb_active))
     if entity == self.gamestate.active_level_state.player:
       if DEBUG_PROFILE: pr.dump_stats('profile')

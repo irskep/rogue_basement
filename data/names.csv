@@ -1,3 +1,6 @@
 id,subject,object,die verb
 player,You,you,die
-verp,The verp,the verp,dies
+verp_1,The measly verp,the measly verp,dies
+verp_2,The average verp,the average verp,dies
+verp_3,The beefy verp,the beefy verp,dies
+verp_4,The terrifying verp,the terrifying verp,dies

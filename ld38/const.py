@@ -1,4 +1,5 @@
 import csv
+from math import floor
 from collections import namedtuple
 from pathlib import Path
 from enum import Enum, unique
@@ -15,6 +16,17 @@ def csv_iterator(filename):
         skip_next_line = False
         continue
       yield line
+
+
+def _int(val):
+  return floor(float(val))
+
+def _color(val):
+  if val.endswith('.00'):
+    val = val[:-3]
+  while len(val) < 6:
+    val = '0' + val
+  return '#' + val
 
 
 class EnumUppercaseWithLookup(Enum):
@@ -37,12 +49,6 @@ class EnumTerrain(EnumUppercaseWithLookup):
   DOOR_CLOSED = 3
   DOOR_OPEN = 4
   CORRIDOR = 5
-
-
-@unique
-class EnumEntityKind(EnumUppercaseWithLookup):
-  PLAYER = 0
-  VERP = 1
 
 
 @unique
@@ -110,18 +116,34 @@ ENTITY_NAME_BY_KIND = {}
 
 EntityName = namedtuple('EntityName', ['subject', 'object', 'death_verb_active'])
 for line in csv_iterator('names.csv'):
-  ENTITY_NAME_BY_KIND[EnumEntityKind.lookup(line[0])] = EntityName(*line[1:])
+  ENTITY_NAME_BY_KIND[line[0].upper()] = EntityName(*line[1:])
 
 
-RoomType = namedtuple('RoomType', ['shape', 'difficulty', 'monsters', 'chance', 'color'])
+RoomType = namedtuple('RoomType', ['shape', 'difficulty', 'monsters', 'chance', 'color', 'monster_density'])
 ROOM_TYPES = []
 
 for line in csv_iterator('rooms.csv'):
   ROOM_TYPES.append(RoomType(
     shape=EnumRoomShape.lookup(line[0]),
-    difficulty=None if line[1] == '*' else int(line[1]),
-    monsters=set(s.upper() for s in line[2].split(',')),
+    difficulty=None if line[1] == '*' else _int(line[1]),
+    monsters=set(s.upper() for s in line[2].split('|')),
     chance=float(line[3]),
-    color=line[4]
+    color=_color(line[4]),
+    monster_density=float(line[5])
   ))
   
+
+MonsterType = namedtuple('MonsterType', [
+  'id', 'char', 'color', 'difficulty', 'chance', 'behaviors', 'hp_max', 'strength'])
+MONSTER_TYPES_BY_ID = {}
+for line in csv_iterator('monsters.csv'):
+  MONSTER_TYPES_BY_ID[line[0].upper()] = MonsterType(
+    id=line[0].upper(),
+    char=line[1],
+    color=_color(line[2]),
+    difficulty=_int(line[3]),
+    chance=float(line[4]),
+    behaviors=line[5].split('|'),
+    hp_max=_int(line[6]),
+    strength=_int(line[7])
+  )

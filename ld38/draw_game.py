@@ -1,6 +1,6 @@
 from math import floor
 
-from .const import EnumTerrain, EnumFeature, EnumEntityKind, EnumMonsterMode
+from .const import EnumTerrain, EnumFeature, EnumMonsterMode
 
 from clubsandwich.blt.nice_terminal import terminal
 from clubsandwich.draw import LINE_STYLES
@@ -15,14 +15,6 @@ C_STAIRS_DOWN = '#ffff00'
 C_TRANSITION_1_2 = '#00ff00'
 C_TRANSITION_2_3 = '#00ff88'
 C_TRANSITION_3_4 = '#00ffff'
-
-C_PLAYER = '#ffffff'
-C_VERP = {
-  10: '#ffff00',
-  20: '#ff8800',
-  30: '#ff0000',
-  40: '#aa0066',
-}
 
 
 def draw_game(gamestate, bounds, ctx):
@@ -94,12 +86,8 @@ def _draw_game(gamestate, bounds, ctx):
 
     if cell.point in entity_cache:
       entity = entity_cache[cell.point]
-      if entity.kind == EnumEntityKind.PLAYER:
-        color = C_PLAYER
-        char = '@'
-      if entity.kind == EnumEntityKind.VERP:
-        color = C_VERP[entity.stats['hp_max']]
-        char = 'v'
+      color = entity.monster_type.color
+      char = entity.monster_type.char
 
     with ctx.temporary_fg(color):
       ctx.put(cell.point, char)
