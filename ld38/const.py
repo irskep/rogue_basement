@@ -1,4 +1,5 @@
 import csv
+import re
 from math import floor
 from collections import namedtuple
 from pathlib import Path
@@ -22,11 +23,26 @@ def _int(val):
   return floor(float(val))
 
 def _color(val):
+  if val.startswith('#'):
+    return val  # already ok
   if val.endswith('.00'):
     val = val[:-3]
   while len(val) < 6:
     val = '0' + val
   return '#' + val
+
+
+ITEM_RE = re.compile(r'(.*)x(\d+)')
+def _items(val):
+  if not val:
+    return []
+  items = []
+  for s in val.split('|'):
+    m = ITEM_RE.match(s)
+    for _ in range(int(m.group(2))):
+      items.append(m.group(1).upper())
+  return items
+
 
 
 class EnumUppercaseWithLookup(Enum):
@@ -61,7 +77,9 @@ class EnumFeature(EnumUppercaseWithLookup):
 @unique
 class EnumMonsterMode(EnumUppercaseWithLookup):
   DEFAULT = 0
-  CHASING_PLAYER = 1
+  CHASING = 1
+  FLEEING = 2
+  SLEEPING = 3
 
 
 @unique
@@ -96,6 +114,8 @@ class EnumEventNames(EnumUppercaseWithLookup):
   entity_attacking = "entity_attacking"
   entity_attacked = "entity_attacked"
   entity_took_damage = "entity_took_damage"
+  entity_picked_up_item = "entity_picked_up_item"
+  entity_dropped_item = "entity_dropped_item"
   door_open = "door_open"
   player_took_action = "player_took_action"
 
@@ -114,27 +134,30 @@ KEYS_CANCEL = (terminal.TK_ESCAPE,)
 
 ENTITY_NAME_BY_KIND = {}
 
-EntityName = namedtuple('EntityName', ['subject', 'object', 'death_verb_active'])
+EntityName = namedtuple(
+  'EntityName', ['subject', 'object', 'death_verb_active'])
 for line in csv_iterator('names.csv'):
   ENTITY_NAME_BY_KIND[line[0].upper()] = EntityName(*line[1:])
 
 
-RoomType = namedtuple('RoomType', ['shape', 'difficulty', 'monsters', 'chance', 'color', 'monster_density'])
+RoomType = namedtuple(
+  'RoomType', ['shape', 'difficulty', 'monsters', 'chance', 'color', 'monster_density', 'item_density'])
 ROOM_TYPES = []
 
 for line in csv_iterator('rooms.csv'):
   ROOM_TYPES.append(RoomType(
     shape=EnumRoomShape.lookup(line[0]),
     difficulty=None if line[1] == '*' else _int(line[1]),
-    monsters=set(s.upper() for s in line[2].split('|')),
+    monsters=None if line[2] == '*' else set(s.upper() for s in line[2].split('|')),
     chance=float(line[3]),
     color=_color(line[4]),
-    monster_density=float(line[5])
+    monster_density=float(line[5]),
+    item_density=float(line[6]),
   ))
   
 
 MonsterType = namedtuple('MonsterType', [
-  'id', 'char', 'color', 'difficulty', 'chance', 'behaviors', 'hp_max', 'strength'])
+  'id', 'char', 'color', 'difficulty', 'chance', 'behaviors', 'hp_max', 'strength', 'items'])
 MONSTER_TYPES_BY_ID = {}
 for line in csv_iterator('monsters.csv'):
   MONSTER_TYPES_BY_ID[line[0].upper()] = MonsterType(
@@ -145,5 +168,20 @@ for line in csv_iterator('monsters.csv'):
     chance=float(line[4]),
     behaviors=line[5].split('|'),
     hp_max=_int(line[6]),
-    strength=_int(line[7])
+    strength=_int(line[7]),
+    items=_items(line[8])
+  )
+
+ItemType = namedtuple('ItemType', [
+  'id', 'char', 'color', 'effect', 'uses_min', 'uses_max', 'chance_by_difficulty'])
+ITEM_TYPES_BY_ID = {}
+for line in csv_iterator('items.csv'):
+  ITEM_TYPES_BY_ID[line[0].upper()] = ItemType(
+    id=line[0].upper(),
+    char=line[1],
+    color=_color(line[2]),
+    uses_min=_int(line[3]),
+    uses_max=_int(line[4]),
+    effect=line[5],
+    chance_by_difficulty=[float(val) for val in line[6:10]]
   )

@@ -28,7 +28,6 @@ def _draw_game(gamestate, bounds, ctx):
   level_state = gamestate.active_level_state
 
   entity_cache = {}
-
   for entity in level_state.entities:
     if entity.position:
       entity_cache[entity.position] = entity
@@ -83,6 +82,11 @@ def _draw_game(gamestate, bounds, ctx):
       if cell.feature == EnumFeature.STAIRS_DOWN:
         color = C_STAIRS_DOWN
         char = '>'
+
+    if cell.point in level_state.item_by_position:
+      item = level_state.item_by_position[cell.point]
+      color = item.item_type.color
+      char = item.item_type.char
 
     if cell.point in entity_cache:
       entity = entity_cache[cell.point]

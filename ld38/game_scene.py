@@ -127,6 +127,29 @@ class StatsView(View):
       draw_line_vert(Point(self.bounds.x2, self.bounds.y), self.bounds.height)
 
 
+class PauseScene(UIScene):
+  def __init__(self, *args, **kwargs):
+    view = WindowView(
+      'Pause',
+      layout_options=LayoutOptions.centered(40, 10),
+      subviews=[
+          ButtonView(
+              text='Resume', callback=self.resume,
+              layout_options=LayoutOptions.row_top(5)),
+          ButtonView(
+              text='Quit', callback=self.quit,
+              layout_options=LayoutOptions.row_bottom(5)),
+      ])
+    super().__init__(view, *args, **kwargs)
+    self.covers_screen = False
+
+  def resume(self):
+    self.director.pop_scene()
+
+  def quit(self):
+    self.director.pop_to_first_scene()
+
+
 class GameOverScene(UIScene):
   def __init__(self, *args, **kwargs):
     view = WindowView(
@@ -200,13 +223,25 @@ class GameScene(UIScene):
     self.log("You open the door.")
 
   def on_entity_attacking(self, entity, data):
-    name1 = ENTITY_NAME_BY_KIND[entity.monster_type.id].subject
-    name2 = ENTITY_NAME_BY_KIND[data.monster_type.id].object
+    try:
+      name1 = ENTITY_NAME_BY_KIND[entity.monster_type.id].subject
+    except KeyError:
+      print("Missing log message for", entity.monster_type.id)
+      return
+
+    try:
+      name2 = ENTITY_NAME_BY_KIND[data.monster_type.id].object
+    except KeyError:
+      print("Missing log message for", data.monster_type.id)
+      return
+
     self.log("{} hits {}.".format(name1, name2))
 
   def on_entity_died(self, entity, data):
-    name = ENTITY_NAME_BY_KIND[entity.monster_type.id]
-    self.log("{} {}.".format(name.subject, name.death_verb_active))
+    try:
+      name = ENTITY_NAME_BY_KIND[entity.monster_type.id].subject
+    except KeyError:
+      print("Missing log message for", entity.monster_type.id)
     if entity == self.gamestate.active_level_state.player:
       if DEBUG_PROFILE: pr.dump_stats('profile')
       self.director.push_scene(GameOverScene())
@@ -222,6 +257,8 @@ class GameScene(UIScene):
           level_state.fire(event_name)
       if val in KEYS_CLOSE:
         self.mode = EnumMode.CLOSE
+      if val in KEYS_CANCEL:
+        self.director.push_scene(PauseScene())
     elif self.mode == EnumMode.CLOSE:
       if val in KEYS_CANCEL:
         self.mode = EnumMode.DEFAULT

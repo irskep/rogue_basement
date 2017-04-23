@@ -8,7 +8,8 @@ from .const import (
   EnumFeature,
   EnumRoomShape,
   ROOM_TYPES,
-  MONSTER_TYPES_BY_ID
+  MONSTER_TYPES_BY_ID,
+  ITEM_TYPES_BY_ID,
 )
 
 from clubsandwich.geom import Rect, Point, Size
@@ -25,6 +26,8 @@ def weighted_choice(choices):
   r = uniform(0, total)
   upto = 0
   for c, w in choices:
+    if w == 0:
+      continue
     if upto + w >= r:
       return c
     upto += w
@@ -217,16 +220,21 @@ def get_can_add_monster_at_point(tilemap, point):
   return True
 
 
+
+get_can_add_item_at_point = get_can_add_monster_at_point
+
+
 MonsterData = namedtuple('MonsterData', ['monster_type', 'position', 'difficulty'])
 def place_monsters(tilemap):
   monster_datas = []
   tilemap.points_of_interest['monsters'] = monster_datas 
   for room in tilemap.rooms_by_id.values():
+    rt = room.room_type
+    possible_monsters = list(MONSTER_TYPES_BY_ID.values()) if rt.monsters is None else [
+      MONSTER_TYPES_BY_ID[mt_k] for mt_k in room.room_type.monsters]
     allowed_monster_types = [
-      mt for mt in
-      [MONSTER_TYPES_BY_ID[mt_k] for mt_k in room.room_type.monsters]
+      mt for mt in possible_monsters
       if mt.difficulty is None or mt.difficulty == room.difficulty]
-    print(allowed_monster_types)
 
     inner_rect = room.rect.with_inset(1)
     num_monsters = max(1, round(inner_rect.area * room.room_type.monster_density / 100.0))
@@ -246,6 +254,30 @@ def place_monsters(tilemap):
       tilemap.occupied_cells.add(point)
       monster_datas.append(MonsterData(
         monster_type=mt, position=point, difficulty=room.difficulty))
+
+
+ItemData = namedtuple('ItemData', ['item_type', 'position'])
+def place_items(tilemap):
+  item_datas = []
+  tilemap.points_of_interest['items'] = item_datas 
+  for room in tilemap.rooms_by_id.values():
+    inner_rect = room.rect.with_inset(1)
+    num_items = max(1, round(inner_rect.area * room.room_type.item_density / 100.0))
+
+    for _ in range(num_items):
+      point = inner_rect.get_random_point()
+      it = weighted_choice([(it, it.chance_by_difficulty[room.difficulty]) for it in ITEM_TYPES_BY_ID.values()])
+
+      i = 0
+      while not get_can_add_item_at_point(tilemap, point) and i < 10:
+        point = inner_rect.get_random_point()
+        i += 1
+      if i >= 10:
+        print("Unable to place item; skipping")
+        continue
+
+      tilemap.occupied_cells.add(point)
+      item_datas.append(ItemData(item_type=it, position=point))
 
 
 def _bsp_randrange(level, a, b):
@@ -287,6 +319,7 @@ def generate_dungeon(tilemap):
   engrave_difficulty(generator.root)
 
   place_monsters(tilemap)
+  place_items(tilemap)
 
   #engrave_bsp_divisions(tilemap, generator.root)
   return tilemap

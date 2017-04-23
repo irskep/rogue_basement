@@ -4,13 +4,18 @@ from uuid import uuid4
 from clubsandwich.geom import Size, Point
 from clubsandwich.tilemap import TileMap, Cell, CellOutOfBoundsError
 
-from .entity import Entity
+from .entity import Entity, Item
 from .behavior import (
   CompositeBehavior,
   BEHAVIORS_BY_ID,
 )
 from .level_generator import generate_dungeon
-from .const import EnumEventNames, EnumTerrain, MONSTER_TYPES_BY_ID
+from .const import (
+  EnumEventNames,
+  EnumTerrain,
+  MONSTER_TYPES_BY_ID,
+  ITEM_TYPES_BY_ID,
+)
 from .dispatcher import EventDispatcher
 
 
@@ -54,6 +59,7 @@ class LevelState:
     self.entities = []
     self.event_queue = deque()
     self.entity_by_position = {}
+    self.item_by_position = {}
     self._is_applying_events = False
 
     self.dispatcher = EventDispatcher()
@@ -65,16 +71,24 @@ class LevelState:
       MONSTER_TYPES_BY_ID['PLAYER'],
       self.tilemap.points_of_interest['stairs_up'])
 
+    for item_data in self.tilemap.points_of_interest['items']:
+      self.drop_item(Item(item_data.item_type), item_data.position)
+
     for monster_data in self.tilemap.points_of_interest['monsters']:
       self.create_entity(monster_data.monster_type, monster_data.position)
 
-  def create_entity(self, monster_type, position):
+  def create_entity(self, monster_type, position, behavior_state=None):
     mt = monster_type
     if mt.id == 'PLAYER':
       assert self.player is None
 
     entity = Entity(monster_type=mt)
     entity.position = position
+    entity.behavior_state = behavior_state or {}
+
+    for it_id in entity.monster_type.items:
+      entity.inventory.append(Item(ITEM_TYPES_BY_ID[it_id]))
+
     if len(mt.behaviors) == 1:
       entity.add_behavior(BEHAVIORS_BY_ID[mt.behaviors[0]](entity, self))
     else:
@@ -97,6 +111,25 @@ class LevelState:
       behavior.remove_from_event_dispatcher(self.dispatcher)
     if entity.position:
       del self.entity_by_position[entity.position]
+      entity.position = None
+
+  def pickup_item(self, entity):
+    try:
+      item = self.item_by_position[entity.position]
+    except KeyError:
+      return False
+    item.position = None
+    entity.inventory.append(item)
+    del self.item_by_position[entity.position]
+    self.fire(EnumEventNames.entity_picked_up_item, data=item, entity=entity)
+
+  def drop_item(self, item, point, entity=None):
+    if point in self.item_by_position:
+      return False
+    self.item_by_position[point] = item
+    if entity is not None:
+      self.fire(EnumEventNames.entity_dropped_item, data=item, entity=entity)
+    return True
 
   @property
   def active_rooms(self):
@@ -118,21 +151,42 @@ class LevelState:
   ### actions ###
 
   def test_line_of_sight(self, source, dest):  # both args are entities
+    # always fail LOS when far away
+    if source.position.manhattan_distance_to(dest.position) > 20:
+      return False
+
     for point in source.position.points_bresenham_to(dest.position):
       if not self.get_can_see(source, point):
         return False
     return True
-  
+
   def get_entity_at(self, position):
     try:
       return self.entity_by_position[position]
     except KeyError:
       return None
 
-  def get_can_move(self, entity, position):
-    # disallow swapping and such for now
-    if position in self.entity_by_position:
+  def get_item_at(self, position):
+    try:
+      return self.item_by_position[position]
+    except KeyError:
+      return None
+
+  def get_is_terrain_passable(self, point):
+    try:
+      return get_is_terrain_passable(self.tilemap.cell(point).terrain)
+    except CellOutOfBoundsError:
       return False
+
+  def get_can_move(self, entity, position, allow_player=False):
+    # disallow swapping and such for now
+    try:
+      if self.entity_by_position[position] == self.player and not allow_player:
+        return False
+      elif self.entity_by_position[position] != self.player:
+        return False
+    except KeyError:
+      pass
 
     try:
       cell = self.tilemap.cell(position)
@@ -146,6 +200,12 @@ class LevelState:
 
   def get_can_open_door(self, entity):
     return entity.is_player
+
+  def get_passable_neighbors(self, entity, allow_player=True):
+    return [
+      p for p in
+      list(entity.position.neighbors) + list(entity.position.diagonal_neighbors)
+      if self.get_can_move(entity, p, allow_player=True)]
 
   def action_close(self, entity, position):
     try:
@@ -189,6 +249,7 @@ class LevelState:
     if target_entity:
       if target_entity == self.player:
         self.action_attack(entity, target_entity)
+        return True
       else:
         return False  # it's another monster
 
