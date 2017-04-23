@@ -29,7 +29,8 @@ from .const import (
   KEYS_U, KEYS_D, KEYS_L, KEYS_R, KEYS_UL, KEYS_UR, KEYS_DL, KEYS_DR,
   KEYS_WAIT,
   KEYS_CLOSE,
-  KEYS_CANCEL
+  KEYS_CANCEL,
+  KEYS_GET,
 )
 
 DEBUG_PROFILE = False
@@ -54,6 +55,7 @@ KEYS_AND_EVENTS = [
   (KEYS_DL, EnumEventNames.key_dl),
   (KEYS_DR, EnumEventNames.key_dr),
   (KEYS_WAIT, EnumEventNames.player_took_action),
+  (KEYS_GET, EnumEventNames.key_get)
 ]
 KEYS_AND_DIRECTIONS = [
   (KEYS_U, Point(0, -1)),
@@ -73,6 +75,7 @@ TEXT_HELP = """
 Move: arrows, numpad
       hjklyubn
 
+Get: g
 Close: c
 """.strip()
 
@@ -254,6 +257,7 @@ class GameScene(UIScene):
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_bumped, level_state.player)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_moved, level_state.player)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_took_damage, level_state.player)
+    level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_picked_up_item, level_state.player)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_died, None)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_attacking, None)
 
@@ -325,6 +329,9 @@ class GameScene(UIScene):
     if entity == self.gamestate.active_level_state.player:
       if DEBUG_PROFILE: pr.dump_stats('profile')
       self.director.push_scene(LoseScene())
+
+  def on_entity_picked_up_item(self, entity, data):
+    self.log("You picked up a {}".format(data.item_type.id))
 
   def terminal_read(self, val):
     if DEBUG_PROFILE: pr.enable()

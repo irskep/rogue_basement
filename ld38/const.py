@@ -98,15 +98,7 @@ class EnumEventNames(EnumUppercaseWithLookup):
   key_ur = "key_ur"
   key_dl = "key_dl"
   key_dr = "key_dr"
-
-  move_u = "move_u"
-  move_d = "move_d"
-  move_l = "move_l"
-  move_r = "move_r"
-  move_ul = "move_ul"
-  move_ur = "move_ur"
-  move_dl = "move_dl"
-  move_dr = "move_dr"
+  key_get = "key_get"
 
   entity_moved = "entity_moved"
   entity_bumped = "entity_bumped"
@@ -131,6 +123,7 @@ KEYS_DR = (terminal.TK_N, terminal.TK_KP_3)
 KEYS_WAIT = (terminal.TK_PERIOD, terminal.TK_KP_5)
 KEYS_CLOSE = (terminal.TK_C,)
 KEYS_CANCEL = (terminal.TK_ESCAPE,)
+KEYS_GET = (terminal.TK_G,)
 
 ENTITY_NAME_BY_KIND = {}
 

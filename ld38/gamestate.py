@@ -19,7 +19,7 @@ from .const import (
 from .dispatcher import EventDispatcher
 
 
-LEVEL_SIZE = Size(160, 80)
+LEVEL_SIZE = Size(100, 60)
 
 
 def get_is_terrain_passable(terrain):
@@ -117,16 +117,6 @@ class LevelState:
     if entity.position:
       del self.entity_by_position[entity.position]
       entity.position = None
-
-  def pickup_item(self, entity):
-    try:
-      items = self.items_by_position[entity.position]
-    except KeyError:
-      return False
-    item.position = None
-    entity.inventory.extend(items)
-    del self.items_by_position[entity.position]
-    self.fire(EnumEventNames.entity_picked_up_item, data=item, entity=entity)
 
   def drop_item(self, item, point, entity=None):
     self.items_by_position.setdefault(point, [])
@@ -291,6 +281,17 @@ class LevelState:
       if b.is_player:
         print("Aborting all events due to player death")
         self.dispatcher._force_abandon_current_events = True
+
+  def action_pickup_item(self, entity):
+    try:
+      items = self.items_by_position[entity.position]
+    except KeyError:
+      return False
+    for item in items:
+      item.position = None
+      entity.inventory.extend(items)
+      del self.items_by_position[entity.position]
+      self.fire(EnumEventNames.entity_picked_up_item, data=item, entity=entity)
 
   def open_door(self, entity, position):
     # this is where the logic goes for doors that are hard to open.

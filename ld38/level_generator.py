@@ -42,7 +42,7 @@ class Room:
     self.difficulty = None
 
     if room_type.shape == EnumRoomShape.BOX_RANDOM:
-      self.rect = rect.get_random_rect(Size(4, 4))
+      self.rect = rect.get_random_rect(Size(5, 5))
     if room_type.shape == EnumRoomShape.BOX_FULL:
       self.rect = rect
 

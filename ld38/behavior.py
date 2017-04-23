@@ -62,6 +62,7 @@ class KeyboardMovementBehavior(Behavior):
       EnumEventNames.key_ur,
       EnumEventNames.key_dl,
       EnumEventNames.key_dr,
+      EnumEventNames.key_get,
     ])
 
   def on_key_u(self, entity, data):
@@ -80,6 +81,8 @@ class KeyboardMovementBehavior(Behavior):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(-1, 1))
   def on_key_dr(self, entity, data):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(1, 1))
+  def on_key_get(self, entity, data):
+    self.level_state.action_pickup_item(self.entity)
 
 
 class CompositeBehavior(Behavior):
