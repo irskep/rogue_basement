@@ -1,3 +1,6 @@
+import csv
+from collections import namedtuple
+from pathlib import Path
 from enum import Enum, unique
 
 from clubsandwich.blt.nice_terminal import terminal
@@ -60,9 +63,12 @@ class EnumEventNames(Enum):
 
   entity_moved = "entity_moved"
   entity_bumped = "entity_bumped"
+  entity_died = "entity_died"
+  entity_attacking = "entity_attacking"
+  entity_attacked = "entity_attacked"
+  entity_took_damage = "entity_took_damage"
   door_open = "door_open"
   player_took_action = "player_took_action"
-  player_died = "player_died"
 
 
 KEYS_U = (terminal.TK_UP, terminal.TK_K, terminal.TK_KP_8)
@@ -76,3 +82,11 @@ KEYS_DR = (terminal.TK_N, terminal.TK_KP_3)
 KEYS_WAIT = (terminal.TK_PERIOD, terminal.TK_KP_5)
 KEYS_CLOSE = (terminal.TK_C,)
 KEYS_CANCEL = (terminal.TK_ESCAPE,)
+
+ENTITY_NAME_BY_KIND = {}
+
+EntityName = namedtuple('EntityName', ['subject', 'object', 'death_verb_active'])
+with (Path(__name__).parent.parent / 'data' / 'names.csv').open() as f:
+  reader = csv.reader(f)
+  for line in reader:
+    ENTITY_NAME_BY_KIND[getattr(EnumEntityKind, line[0].upper())] = EntityName(*line[1:])

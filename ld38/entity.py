@@ -29,5 +29,5 @@ class Entity:
 class Player(Entity):
   def __init__(self):
     super().__init__(EnumEntityKind.PLAYER)
-    self.stats = {'hp_max': 100}
+    self.stats = {'hp_max': 100, 'strength': 5}
     self.state = {'hp': 100}

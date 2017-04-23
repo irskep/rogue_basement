@@ -48,21 +48,21 @@ class KeyboardMovementBehavior(Behavior):
       EnumEventNames.key_dr,
     ])
 
-  def on_key_u(self, data):
+  def on_key_u(self, entity, data):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(0, -1))
-  def on_key_d(self, data):
+  def on_key_d(self, entity, data):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(0, 1))
-  def on_key_l(self, data):
+  def on_key_l(self, entity, data):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(-1, 0))
-  def on_key_r(self, data):
+  def on_key_r(self, entity, data):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(1, 0))
-  def on_key_ul(self, data):
+  def on_key_ul(self, entity, data):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(-1, -1))
-  def on_key_ur(self, data):
+  def on_key_ur(self, entity, data):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(1, -1))
-  def on_key_dl(self, data):
+  def on_key_dl(self, entity, data):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(-1, 1))
-  def on_key_dr(self, data):
+  def on_key_dr(self, entity, data):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(1, 1))
 
 
@@ -83,9 +83,9 @@ class CompositeBehavior(Behavior):
       for b in self.sub_behaviors
       if hasattr(b, k)]
 
-    def handler(data):
+    def handler(entity, data):
       for method in methods:
-        if method(data):
+        if method(entity, data):
           return True
       return False
     return handler
@@ -95,7 +95,7 @@ class RandomWalkBehavior(Behavior):
   def __init__(self, entity, level_state):
     super().__init__(entity, level_state, [EnumEventNames.player_took_action])
 
-  def on_player_took_action(self, data):
+  def on_player_took_action(self, entity, data):
     self.entity.mode = EnumMonsterMode.DEFAULT
     possibilities = [
       p for p in
@@ -109,7 +109,7 @@ class RandomWalkBehavior(Behavior):
 
 
 class BeelineBehavior(RandomWalkBehavior):
-  def on_player_took_action(self, data):
+  def on_player_took_action(self, entity, data):
     if self.entity.position.manhattan_distance_to(self.level_state.player.position) > 20:
       return False
 

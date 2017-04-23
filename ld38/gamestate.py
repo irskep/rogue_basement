@@ -69,7 +69,7 @@ class LevelState:
 
     for monster_data in self.tilemap.points_of_interest['monsters']:
       entity = Entity(kind=monster_data.kind)
-      entity.stats = {'hp_max': 10 * monster_data.difficulty}
+      entity.stats = {'hp_max': 10 * (monster_data.difficulty + 1), 'strength': 2}
       entity.state = {'hp': entity.stats['hp_max']}
       entity.position = monster_data.position
       if entity.kind == EnumEntityKind.VERP:
@@ -117,6 +117,12 @@ class LevelState:
       if not self.get_can_see(source, point):
         return False
     return True
+  
+  def get_entity_at(self, position):
+    try:
+      return self.entity_by_position[position]
+    except KeyError:
+      return None
 
   def get_can_move(self, entity, position):
     # disallow swapping and such for now
@@ -146,6 +152,13 @@ class LevelState:
 
   def action_player_move(self, entity, position):
     cell = self.tilemap.cell(position)
+
+    target_entity = self.get_entity_at(position)
+    if target_entity:
+      self.action_attack(entity, target_entity)
+      self.fire(EnumEventNames.player_took_action, data=position, entity=None)
+      return True
+
     if self.get_can_move(entity, position):
       del self.entity_by_position[entity.position]
       entity.position = position
@@ -163,6 +176,14 @@ class LevelState:
 
   def action_monster_move(self, entity, position):
     cell = self.tilemap.cell(position)
+
+    target_entity = self.get_entity_at(position)
+    if target_entity:
+      if target_entity == self.player:
+        self.action_attack(entity, target_entity)
+      else:
+        return False  # it's another monster
+
     if self.get_can_move(entity, position):
       del self.entity_by_position[entity.position]
       entity.position = position
@@ -174,6 +195,16 @@ class LevelState:
       return True
     else:
       return False
+
+  def action_attack(self, a, b):
+    self.fire(EnumEventNames.entity_attacking, data=b, entity=a)
+    self.fire(EnumEventNames.entity_attacked, data=a, entity=b)
+    print(a.stats, b.state)
+    b.state['hp'] -= a.stats['strength']
+    self.fire(EnumEventNames.entity_took_damage, data=a, entity=b)
+    if b.state['hp'] <= 0:
+      self.fire(EnumEventNames.entity_died, data=None, entity=b)
+      self.remove_entity(b)
 
   def open_door(self, entity, position):
     # this is where the logic goes for doors that are hard to open.

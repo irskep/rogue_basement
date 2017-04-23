@@ -15,7 +15,7 @@ class EventDispatcher:
       name = name.value
     self.handlers[name].append((obj, entity))
 
-  def remove_subscriber(self, obj, name):
+  def remove_subscriber(self, obj, name, entity):
     if isinstance(name, Enum):
       name = name.value
     self.handlers[name].remove((obj, entity))
@@ -26,4 +26,5 @@ class EventDispatcher:
     method_name = "on_" + name.lower()
     for (obj, inner_entity) in self.handlers[name]:
       if entity is None or inner_entity is None or entity is inner_entity:
-        getattr(obj, method_name)(data)
+        method = getattr(obj, method_name)
+        method(entity, data)

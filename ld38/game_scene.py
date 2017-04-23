@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from enum import Enum
+from math import floor
 
 from clubsandwich.draw import draw_line_vert
 from clubsandwich.blt.nice_terminal import terminal
@@ -18,14 +19,8 @@ from .gamestate import GameState
 from .const import (
   EnumEventNames,
   EnumMode,
-  KEYS_U,
-  KEYS_D,
-  KEYS_L,
-  KEYS_R,
-  KEYS_UL,
-  KEYS_UR,
-  KEYS_DL,
-  KEYS_DR,
+  ENTITY_NAME_BY_KIND,
+  KEYS_U, KEYS_D, KEYS_L, KEYS_R, KEYS_UL, KEYS_UR, KEYS_DL, KEYS_DR,
   KEYS_WAIT,
   KEYS_CLOSE,
   KEYS_CANCEL
@@ -72,6 +67,21 @@ if DEBUG_PROFILE:
   pr = cProfile.Profile()
 
 
+class ProgressBarView(View):
+  def __init__(self, fraction, color_fg='#0088ff', color_bg='#000000', *args, **kwargs):
+    self.fraction = fraction
+    self.color_fg = color_fg
+    self.color_bg = color_bg
+    super().__init__(*args, **kwargs)
+
+  def draw(self, ctx):
+    with ctx.temporary_bg(self.color_bg):
+      ctx.clear_area(self.bounds)
+    frac_width = floor(self.bounds.width * self.fraction)
+    with ctx.temporary_bg(self.color_fg):
+      ctx.clear_area(self.bounds.with_size(Size(frac_width, self.bounds.height)))
+
+
 class GameView(View):
   def __init__(self, gamestate, *args, **kwargs):
     self.gamestate = gamestate
@@ -90,6 +100,9 @@ class GameView(View):
 class StatsView(View):
   def __init__(self, gamestate, *args, **kwargs):
     self.gamestate = gamestate
+    self.progress_bar = ProgressBarView(
+      fraction=1,
+      layout_options=LayoutOptions.row_top(1).with_updates(top=3, right=1))
     super().__init__(*args, **kwargs)
     self.add_subview(LabelView(
       text="Stats",
@@ -97,7 +110,17 @@ class StatsView(View):
       color_bg='#660000',
       clear=True,
       layout_options=LayoutOptions.row_top(1).with_updates(right=1)))
+    self.add_subview(LabelView(
+      text="Health",
+      color_fg='#ffffff',
+      color_bg='#000000',
+      layout_options=LayoutOptions.row_top(1).with_updates(right=1, top=2)))
+    self.add_subview(self.progress_bar)
 
+  def update(self):
+    self.progress_bar.fraction = (
+      self.gamestate.active_level_state.player.state['hp'] /
+      self.gamestate.active_level_state.player.stats['hp_max'])
 
   def draw(self, ctx):
     with ctx.temporary_fg('#ffffff'):
@@ -128,12 +151,13 @@ class GameScene(UIScene):
     self.log_view = LabelView(
       text="", align_horz='left', color_bg='#333333', clear=True,
       layout_options=LayoutOptions.row_bottom(1).with_updates(left=SIDEBAR_WIDTH))
+    self.stats_view = StatsView(self.gamestate, layout_options=LayoutOptions.column_left(SIDEBAR_WIDTH))
     help_view = LabelView(
       text=TEXT_HELP, align_horz='left',
       layout_options=LayoutOptions.column_left(SIDEBAR_WIDTH).with_updates(top=None, height=5))
     views = [
       GameView(self.gamestate, layout_options=LayoutOptions().with_updates(left=SIDEBAR_WIDTH, bottom=1)),
-      StatsView(self.gamestate, layout_options=LayoutOptions.column_left(SIDEBAR_WIDTH)),
+      self.stats_view,
       help_view,
       self.log_view,
     ]
@@ -143,7 +167,9 @@ class GameScene(UIScene):
     level_state.dispatcher.add_subscriber(self, EnumEventNames.door_open, level_state.player)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_bumped, level_state.player)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_moved, level_state.player)
-    level_state.dispatcher.add_subscriber(self, EnumEventNames.player_died, None)
+    level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_took_damage, level_state.player)
+    level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_died, None)
+    level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_attacking, None)
 
   @property
   def mode(self):
@@ -161,19 +187,29 @@ class GameScene(UIScene):
     self.log_view.text = text
     print(text)
 
-  def on_entity_moved(self, data):
+  def on_entity_moved(self, entity, data):
     self.log_view.text = ""
 
-  def on_entity_bumped(self, data):
+  def on_entity_bumped(self, entity, data):
     self.log("Oof!")
 
-  def on_door_open(self, data):
+  def on_entity_took_damage(self, entity, data):
+    self.stats_view.update()
+
+  def on_door_open(self, entity, data):
     self.log("You open the door.")
 
-  def on_player_died(self, data):
-    if DEBUG_PROFILE: pr.dump_stats('profile')
-    self.log("You have died.")
-    self.director.push_scene(GameOverScene())
+  def on_entity_attacking(self, entity, data):
+    name1 = ENTITY_NAME_BY_KIND[entity.kind].subject
+    name2 = ENTITY_NAME_BY_KIND[data.kind].object
+    self.log("{} hits {}.".format(name1, name2))
+
+  def on_entity_died(self, entity, data):
+    name = ENTITY_NAME_BY_KIND[entity.kind]
+    self.log("{} {}.".format(name.subject, name.death_verb_active))
+    if entity == self.gamestate.active_level_state.player:
+      if DEBUG_PROFILE: pr.dump_stats('profile')
+      self.director.push_scene(GameOverScene())
 
   def terminal_read(self, val):
     if DEBUG_PROFILE: pr.enable()
