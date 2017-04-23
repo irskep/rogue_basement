@@ -82,6 +82,8 @@ class LevelState:
     if mt.id == 'PLAYER':
       assert self.player is None
 
+    assert position not in self.entity_by_position
+
     entity = Entity(monster_type=mt)
     entity.position = position
     entity.behavior_state = behavior_state or {}
@@ -124,8 +126,7 @@ class LevelState:
     self.fire(EnumEventNames.entity_picked_up_item, data=item, entity=entity)
 
   def drop_item(self, item, point, entity=None):
-    if point in self.item_by_position:
-      return False
+    assert point not in self.item_by_position
     self.item_by_position[point] = item
     if entity is not None:
       self.fire(EnumEventNames.entity_dropped_item, data=item, entity=entity)
@@ -254,7 +255,10 @@ class LevelState:
         return False  # it's another monster
 
     if self.get_can_move(entity, position):
-      del self.entity_by_position[entity.position]
+      try:
+        del self.entity_by_position[entity.position]
+      except KeyError:
+        import pudb; pu.db()
       entity.position = position
       self.entity_by_position[position] = entity
       self.fire(EnumEventNames.entity_moved, data=entity, entity=entity)

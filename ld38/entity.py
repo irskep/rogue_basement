@@ -27,7 +27,7 @@ class Entity:
     self.behaviors.append(behavior)
 
   def __repr__(self):
-    return self.__class__.__name__
+    return "{}(monster_type={})".format(self.__class__.__name__, self.monster_type.id)
 
 
 class Item:

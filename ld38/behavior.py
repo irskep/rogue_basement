@@ -8,7 +8,14 @@ from clubsandwich.geom import Size, Point
 from clubsandwich.tilemap import TileMap
 
 from .level_generator import generate_dungeon
-from .const import EnumEventNames, EnumTerrain, EnumMonsterMode
+from .const import (
+  EnumEventNames,
+  EnumTerrain,
+  EnumMonsterMode,
+  ITEM_TYPES_BY_ID,
+  MONSTER_TYPES_BY_ID,
+)
+from .entity import Item
 
 
 BEHAVIORS_BY_ID = {}
@@ -100,18 +107,27 @@ class CompositeBehavior(Behavior):
     return handler
 
 
-@behavior('random_walk')
-class RandomWalkBehavior(Behavior):
+class StandardEnemyBehavior(Behavior):
   def __init__(self, entity, level_state):
     super().__init__(entity, level_state, [EnumEventNames.player_took_action])
 
-  def on_player_took_action(self, entity, data):
+
+@behavior('sleep')
+class SleepBehavior(StandardEnemyBehavior):
+  def on_player_took_action(self, player, data):
     self.entity.mode = EnumMonsterMode.DEFAULT
-    possibilities = [
-      p for p in
-      list(self.entity.position.neighbors) + list(self.entity.position.diagonal_neighbors)
-      if self.level_state.get_can_move(self.entity, p)
-    ]
+    return True
+
+
+@behavior('random_walk')
+class RandomWalkBehavior(StandardEnemyBehavior):
+  def on_player_took_action(self, player, data):
+    if self.entity.position.manhattan_distance_to(self.level_state.player.position) > 40:
+      self.entity.mode = EnumMonsterMode.SLEEPING
+      return True
+
+    self.entity.mode = EnumMonsterMode.DEFAULT
+    possibilities = self.level_state.get_passable_neighbors(self.entity)
     if not possibilities:
       return False
     self.level_state.action_monster_move(self.entity, random.choice(possibilities))
@@ -120,32 +136,107 @@ class RandomWalkBehavior(Behavior):
 
 @behavior('beeline_visible')
 @behavior('beeline_target')  # temporary
-class BeelineBehavior(RandomWalkBehavior):
-  def on_player_took_action(self, entity, data):
-    if self.entity.position.manhattan_distance_to(self.level_state.player.position) > 20:
-      return False
-
+class BeelineBehavior(StandardEnemyBehavior):
+  def on_player_took_action(self, player, data):
     if not self.level_state.test_line_of_sight(self.entity, self.level_state.player):
       return False
 
-    candidates = [
-      p for p in
-      list(self.entity.position.neighbors) + list(self.entity.position.diagonal_neighbors)
-      if self.level_state.tilemap.contains_point(p)]
-
+    candidates = self.level_state.get_passable_neighbors(self.entity, allow_player=True)
     if not candidates:
       return False
 
-    self.entity.mode = EnumMonsterMode.CHASING_PLAYER
+    self.entity.mode = EnumMonsterMode.CHASING
 
-    best_point = candidates[0]
-    best_distance = best_point.manhattan_distance_to(self.level_state.player.position)
-    for point in candidates:
-      distance = point.manhattan_distance_to(self.level_state.player.position)
-      if distance < best_distance:
-        best_distance = distance
-        best_point = point
-    
-    self.level_state.action_monster_move(self.entity, best_point)
+    point = self.level_state.player.position.get_closest_point(candidates)
+    self.level_state.action_monster_move(self.entity, point)
+    return True
+
+
+@behavior('range_5_visible')
+class Range5VisibleBehavior(StandardEnemyBehavior):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.best_range = 5
+
+  def on_player_took_action(self, player, data):
+    if not self.level_state.test_line_of_sight(self.entity, self.level_state.player):
+      return False
+
+    candidates = self.level_state.get_passable_neighbors(self.entity)
+    if not candidates:
+      return False
+
+    dist = self.entity.position.manhattan_distance_to(self.level_state.player.position)
+
+    if dist < self.best_range - 1:
+      self.entity.mode = EnumMonsterMode.FLEEING
+      self.level_state.action_monster_move(
+        self.entity, self.level_state.player.position.get_farthest_point(candidates))
+      return True
+    elif dist > self.best_range:
+      self.entity.mode = EnumMonsterMode.CHASING
+      self.level_state.action_monster_move(
+        self.entity, self.level_state.player.position.get_closest_point(candidates))
+      return True
+    else:
+      return False  # probably cascade to some kind of ranged attack
+
+
+@behavior('range_7_visible')
+class Range7VisibleBehavior(Range5VisibleBehavior):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.best_range = 7
+
+
+@behavior('throw_rock_slow')
+class ThrowRockSlowBehavior(StandardEnemyBehavior):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.rock_speed = 1
+
+  def on_player_took_action(self, player, data):
+    if not self.level_state.test_line_of_sight(self.entity, self.level_state.player):
+      return False
+
+    self.entity.behavior_state.setdefault('throw_rock_cooldown', 1)
+    self.entity.behavior_state['throw_rock_cooldown'] -= 1
+
+    if self.entity.behavior_state['throw_rock_cooldown'] <= 0:
+      self.entity.behavior_state['throw_rock_cooldown'] = 6
+      path = list(self.entity.position.points_bresenham_to(self.level_state.player.position))
+      while self.level_state.get_entity_at(path[0]) == self.entity:
+        path.pop(0)
+      entity_in_the_way = self.level_state.get_entity_at(path[0])
+      if entity_in_the_way and entity_in_the_way.is_player:
+        print("Can't throw, something's in the way")
+        return False
+
+      self.level_state.create_entity(MONSTER_TYPES_BY_ID['ROCK_IN_FLIGHT'], path[0], {
+        'path': path[1:],
+        'speed': self.rock_speed,
+      })
+
+
+@behavior('path_until_hit')
+class PathUntilHitBehavior(StandardEnemyBehavior):
+  def on_player_took_action(self, player, data):
+    p = self.entity.position
+    if not self.entity.behavior_state.get('path', None):
+      self.level_state.remove_entity(self.entity)
+      self.level_state.drop_item(Item(ITEM_TYPES_BY_ID['ROCK']), p, entity=self.entity)
+      return True
+
+    next_point = self.entity.behavior_state['path'].pop(0)
+    entity_to_hit = self.level_state.get_entity_at(next_point)
+    if entity_to_hit:
+      p = entity_to_hit.position
+      self.level_state.action_attack(self.entity, entity_to_hit)
+    elif self.level_state.get_is_terrain_passable(next_point):
+      self.level_state.action_monster_move(self.entity, next_point)
+      return True
+
+    self.level_state.remove_entity(self.entity)
+    self.level_state.drop_item(Item(ITEM_TYPES_BY_ID['ROCK']), p, entity=self.entity)
     return True
     
