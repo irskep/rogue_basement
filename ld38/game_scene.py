@@ -202,6 +202,7 @@ class LoseScene(UIScene):
               layout_options=LayoutOptions.row_bottom(3)),
       ])
     super().__init__(view, *args, **kwargs)
+    self.covers_screen = False
 
   def done(self):
     self.director.pop_to_first_scene()
@@ -221,6 +222,7 @@ class WinScene(UIScene):
               layout_options=LayoutOptions.row_bottom(3)),
       ])
     super().__init__(view, *args, **kwargs)
+    self.covers_screen = False
 
   def done(self):
     self.director.pop_to_first_scene()
