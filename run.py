@@ -25,11 +25,17 @@ from ld38.game_scene import GameScene
 from ld38.const import EnumEventNames
 
 
-WINDOW_SIZE = Size(80, 32)
+WINDOW_SIZE = Size(100, 46)
 HALF_WINDOW_SIZE = (Size(80, 25) / 2).floored
 
 
 LOGO = """
+.-,--.                  ,-,---.                           .  
+ `|__/ ,-. ,-. . . ,-.   '|___/ ,-. ,-. ,-. ,-,-. ,-. ,-. |- 
+ )| \  | | | | | | |-'   ,|   \ ,-| `-. |-' | | | |-' | | |  
+ `'  ` `-' `-| `-^ `-'  `-^---' `-^ `-' `-' ' ' ' `-' ' ' `' 
+            ,|                                               
+            `'       
 """
 
 
@@ -43,33 +49,32 @@ class GameLoop(DirectorLoop):
     """.format(size=WINDOW_SIZE))
 
   def get_initial_scene(self):
-    return GameScene()
-    #return MainMenuScene()
+    return MainMenuScene()
 
 
 ### Menus ###
 
 
 class MainMenuScene(UIScene):
-    def __init__(self, *args, **kwargs):
-        views = [
-            LabelView(
-                LOGO[1:].rstrip(),
-                layout_options=LayoutOptions.row_top(0.5)),
-            ButtonView(
-                text="Play", callback=self.play,
-                layout_options=LayoutOptions.row_bottom(4).with_updates(
-                    left=0.2, width=0.2, right=None)),
-            ButtonView(
-                text="Quit", callback=self.director.pop_scene,
-                layout_options=LayoutOptions.row_bottom(4).with_updates(
-                    left=0.6, width=0.2, right=None)),
-        ]
-        super().__init__(views, *args, **kwargs)
+  def __init__(self, *args, **kwargs):
+    views = [
+      LabelView(
+        LOGO[1:].rstrip(),
+        layout_options=LayoutOptions.row_top(0.5)),
+      ButtonView(
+        text="Play", callback=self.play,
+        layout_options=LayoutOptions.row_bottom(4).with_updates(
+          left=0.2, width=0.2, right=None)),
+      ButtonView(
+        text="Quit", callback=lambda: self.director.pop_scene(),
+        layout_options=LayoutOptions.row_bottom(4).with_updates(
+          left=0.6, width=0.2, right=None)),
+    ]
+    super().__init__(views, *args, **kwargs)
 
-    def play(self):
-        self.director.push_scene(GameScene())
+  def play(self):
+    self.director.push_scene(GameScene())
 
 
 if __name__ == '__main__':
-    GameLoop().run()
+  GameLoop().run()
