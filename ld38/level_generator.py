@@ -269,7 +269,7 @@ def generate_dungeon(tilemap):
   generate_and_engrave_corridors(tilemap, generator.root)
 
   stairs_up_room = get_room_nearest(
-    generator.root.get_node_at_path('aa').leaves, Point(tilemap.size.width / 2, 0))
+    generator.root.get_node_at_path('aa').leaves, Point(tilemap.size.width / 2, tilemap.size.height / 4))
   stairs_up = stairs_up_room.rect.with_inset(1).get_random_point()
 
   stairs_down_room = get_room_nearest(
@@ -288,5 +288,5 @@ def generate_dungeon(tilemap):
 
   place_monsters(tilemap)
 
-  engrave_bsp_divisions(tilemap, generator.root)
+  #engrave_bsp_divisions(tilemap, generator.root)
   return tilemap
