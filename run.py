@@ -63,11 +63,11 @@ class MainMenuScene(UIScene):
         layout_options=LayoutOptions.row_top(0.5)),
       ButtonView(
         text="Play", callback=self.play,
-        layout_options=LayoutOptions.row_bottom(4).with_updates(
+        layout_options=LayoutOptions.row_bottom(10).with_updates(
           left=0.2, width=0.2, right=None)),
       ButtonView(
         text="Quit", callback=lambda: self.director.pop_scene(),
-        layout_options=LayoutOptions.row_bottom(4).with_updates(
+        layout_options=LayoutOptions.row_bottom(10).with_updates(
           left=0.6, width=0.2, right=None)),
     ]
     super().__init__(views, *args, **kwargs)
