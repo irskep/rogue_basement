@@ -209,7 +209,7 @@ class ThrowRockSlowBehavior(StandardEnemyBehavior):
       while self.level_state.get_entity_at(path[0]) == self.entity:
         path.pop(0)
       entity_in_the_way = self.level_state.get_entity_at(path[0])
-      if entity_in_the_way and entity_in_the_way.is_player:
+      if entity_in_the_way and not entity_in_the_way.is_player:
         print("Can't throw, something's in the way")
         return False
 
