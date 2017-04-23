@@ -43,11 +43,11 @@ class Behavior:
 
   def add_to_event_dispatcher(self, dispatcher):
     for name in self.event_names:
-      dispatcher.add_subscriber(self, name, self.entity if self.is_local_to_entity else False)
+      dispatcher.add_subscriber(self, name, self.entity if self.is_local_to_entity else None)
 
   def remove_from_event_dispatcher(self, dispatcher):
     for name in self.event_names:
-      dispatcher.remove_subscriber(self, name, self.entity if self.is_local_to_entity else False)
+      dispatcher.remove_subscriber(self, name, self.entity if self.is_local_to_entity else None)
 
 
 @behavior('keyboard_movement')
@@ -122,6 +122,30 @@ class SleepBehavior(StandardEnemyBehavior):
     return True
 
 
+@behavior('stunnable')
+class StunnableBehavior(Behavior):
+  def __init__(self, entity, level_state):
+    super().__init__(entity, level_state, [
+      EnumEventNames.entity_attacked,
+      EnumEventNames.player_took_action,
+    ])
+
+  def on_entity_attacked(self, entity, data):
+    if entity is not self.entity:
+      return False
+    print("Stunned", entity.monster_type.id)
+    self.entity.behavior_state['stun_cooldown'] = 2
+
+  def on_player_took_action(self, player, data):
+    cooldown = self.entity.behavior_state.get('stun_cooldown', 0)
+    if cooldown:
+      print("Still stunned", cooldown)
+      self.entity.behavior_state['stun_cooldown'] -= 1
+      return True
+    else:
+      return False
+
+
 @behavior('random_walk')
 class RandomWalkBehavior(StandardEnemyBehavior):
   def on_player_took_action(self, player, data):
@@ -135,6 +159,28 @@ class RandomWalkBehavior(StandardEnemyBehavior):
       return False
     self.level_state.action_monster_move(self.entity, random.choice(possibilities))
     return True
+
+
+@behavior('pick_up_rocks')
+class PickUpRocksBehavior(StandardEnemyBehavior):
+  def on_player_took_action(self, player, data):
+    possibilities = self.level_state.get_passable_neighbors(self.entity)
+    if not possibilities:
+      print("No neighbors")
+      return False
+    self.entity.mode = EnumMonsterMode.DEFAULT
+
+    for i in self.level_state.get_items_at(self.entity.position):
+      if i.item_type.id == 'ROCK':
+        self.level_state.action_pickup_item(self.entity)
+        return True
+
+    for p in possibilities:
+      for i in self.level_state.get_items_at(p):
+        if i.item_type.id == 'ROCK':
+          self.level_state.action_monster_move(self.entity, p)
+          return True
+    return False
 
 
 @behavior('beeline_visible')
@@ -213,27 +259,20 @@ class ThrowRockSlowBehavior(StandardEnemyBehavior):
       if not item:
         print("Can't throw, no more rocks in inventory")
         return False
-      self.entity.inventory.remove(item)
 
       self.entity.behavior_state['throw_rock_cooldown'] = 6
-      path = list(self.entity.position.points_bresenham_to(self.level_state.player.position))
-      while self.level_state.get_entity_at(path[0]) == self.entity:
-        path.pop(0)
-      entity_in_the_way = self.level_state.get_entity_at(path[0])
-      if entity_in_the_way and not entity_in_the_way.is_player:
-        print("Can't throw, something's in the way")
-        return False
-
-      rock_in_flight = self.level_state.create_entity(MONSTER_TYPES_BY_ID['ROCK_IN_FLIGHT'], path[0], {
-        'path': [None] + path[1:],  # behavior executes immediately but rock is already placed
-        'speed': self.rock_speed,
-      })
-      rock_in_flight.inventory.append(item)
+      self.level_state.action_throw(
+        self.entity, item, self.level_state.player.position, self.rock_speed)
 
 
 @behavior('path_until_hit')
 class PathUntilHitBehavior(StandardEnemyBehavior):
-  def on_player_took_action(self, player, data):
+  def on_player_took_action(self, player, data, iterations_left=None):
+    if iterations_left is None:
+      iterations_left = self.entity.behavior_state['speed']
+    iterations_left -= 1
+    if iterations_left < 0:
+      return False
     # the item to drop at the end must be the entity's only inventory item.
 
     p = self.entity.position
@@ -257,5 +296,7 @@ class PathUntilHitBehavior(StandardEnemyBehavior):
 
     self.level_state.drop_item(self.entity.inventory.pop(0), p, entity=self.entity)
     self.level_state.remove_entity(self.entity)
+
+    self.on_player_took_action(player, data, iterations_left - 1)
     return True
     

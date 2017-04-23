@@ -55,6 +55,7 @@ class EnumUppercaseWithLookup(Enum):
 class EnumMode(EnumUppercaseWithLookup):
   DEFAULT = 0
   CLOSE = 1
+  THROW = 2
 
 
 @unique
@@ -124,6 +125,7 @@ KEYS_WAIT = (terminal.TK_PERIOD, terminal.TK_KP_5)
 KEYS_CLOSE = (terminal.TK_C,)
 KEYS_CANCEL = (terminal.TK_ESCAPE,)
 KEYS_GET = (terminal.TK_G,)
+KEYS_THROW = (terminal.TK_T,)
 
 ENTITY_NAME_BY_KIND = {}
 

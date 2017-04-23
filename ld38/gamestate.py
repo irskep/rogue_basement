@@ -162,11 +162,11 @@ class LevelState:
     except KeyError:
       return None
 
-  def get_item_at(self, position):
+  def get_items_at(self, position):
     try:
       return self.items_by_position[position]
     except KeyError:
-      return None
+      return []
 
   def get_is_terrain_passable(self, point):
     try:
@@ -217,6 +217,29 @@ class LevelState:
       return False
     cell.terrain = EnumTerrain.DOOR_CLOSED
     self._fire_player_took_action_if_alive(position)
+    return True
+
+  def action_throw(self, entity, item, target_position, speed):
+    entity.inventory.remove(item)
+
+    path = list(entity.position.points_bresenham_to(target_position))
+    while self.get_entity_at(path[0]) == entity:
+      path.pop(0)
+    entity_in_the_way = self.get_entity_at(path[0])
+    if (not entity.is_player and
+        entity_in_the_way and
+        not entity_in_the_way.is_player):
+      return False
+
+    mk_id = item.item_type.id + '_IN_FLIGHT'
+    rock_in_flight = self.create_entity(MONSTER_TYPES_BY_ID[mk_id], path[0], {
+      'path': [None] + path[1:],  # behavior executes immediately but rock is already placed
+      'speed': speed,
+    })
+    rock_in_flight.inventory.append(item)
+    
+    if entity.is_player:
+      self._fire_player_took_action_if_alive(entity.position)
     return True
 
   def action_player_move(self, entity, position):

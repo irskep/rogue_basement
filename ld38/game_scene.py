@@ -31,6 +31,7 @@ from .const import (
   KEYS_CLOSE,
   KEYS_CANCEL,
   KEYS_GET,
+  KEYS_THROW,
 )
 
 DEBUG_PROFILE = False
@@ -76,7 +77,10 @@ Move: arrows, numpad
       hjklyubn
 
 Get: g
+Throw: t
+  (random item)
 Close: c
+
 """.strip()
 
 
@@ -243,7 +247,7 @@ class GameScene(UIScene):
     self.stats_view = StatsView(self.gamestate, layout_options=LayoutOptions.column_left(SIDEBAR_WIDTH))
     help_view = LabelView(
       text=TEXT_HELP, align_horz='left',
-      layout_options=LayoutOptions.column_left(SIDEBAR_WIDTH).with_updates(top=None, height=5))
+      layout_options=LayoutOptions.column_left(SIDEBAR_WIDTH).with_updates(top=None, height='intrinsic'))
     views = [
       GameView(self.gamestate, layout_options=LayoutOptions().with_updates(left=SIDEBAR_WIDTH, bottom=1)),
       self.stats_view,
@@ -257,7 +261,7 @@ class GameScene(UIScene):
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_bumped, level_state.player)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_moved, level_state.player)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_took_damage, level_state.player)
-    level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_picked_up_item, level_state.player)
+    level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_picked_up_item, None)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_died, None)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_attacking, None)
 
@@ -275,8 +279,10 @@ class GameScene(UIScene):
     self._mode = mode
     if mode == EnumMode.DEFAULT:
       pass
-    else:
+    elif mode == EnumMode.CLOSE:
       self.log_view.text = "Close what? (Pick a direction)"
+    elif mode == EnumMode.THROW:
+      self.log_view.text = "Throw where? (Pick a direction)"
 
   def log(self, text):
     self.log_view.text = text
@@ -331,7 +337,11 @@ class GameScene(UIScene):
       self.director.push_scene(LoseScene())
 
   def on_entity_picked_up_item(self, entity, data):
-    self.log("You picked up a {}".format(data.item_type.id))
+    if entity.is_player:
+      self.log("You picked up a {}".format(data.item_type.id))
+    else:
+      name = ENTITY_NAME_BY_KIND[entity.monster_type.id].subject
+      self.log("{} picks up a {}".format(name, data.item_type.id))
 
   def terminal_read(self, val):
     if DEBUG_PROFILE: pr.enable()
@@ -344,6 +354,11 @@ class GameScene(UIScene):
           level_state.fire(event_name)
       if val in KEYS_CLOSE:
         self.mode = EnumMode.CLOSE
+      if val in KEYS_THROW:
+        if level_state.player.inventory:
+          self.mode = EnumMode.THROW
+        else:
+          self.log("You don't have anything to throw.")
       if val in KEYS_CANCEL:
         self.director.push_scene(PauseScene())
     elif self.mode == EnumMode.CLOSE:
@@ -355,6 +370,23 @@ class GameScene(UIScene):
             self.log("You close the door.")
           else:
             self.log("There is no door there.")
+          self.mode = EnumMode.DEFAULT
+          if DEBUG_PROFILE: pr.disable()
+          return
+      if DEBUG_PROFILE: pr.disable()
+      self.log("Invalid direction")
+    elif self.mode == EnumMode.THROW:
+      if val in KEYS_CANCEL:
+        self.mode = EnumMode.DEFAULT
+      for keys, delta in KEYS_AND_DIRECTIONS:
+        if val in keys:
+          item = level_state.player.inventory[0]
+          did_throw = level_state.action_throw(
+            level_state.player, item, level_state.player.position + delta * 1000, 2)
+          if did_throw:
+            self.log("You throw the {}".format(item.item_type.id))
+          else:
+            self.log("You can't throw that in that direction.")
           self.mode = EnumMode.DEFAULT
           if DEBUG_PROFILE: pr.disable()
           return
