@@ -50,7 +50,7 @@ def _draw_game(gamestate, bounds, ctx):
     color = C_DEFAULT
     if cell.terrain == EnumTerrain.FLOOR:
       char = '.'
-      color = C_FLOOR
+      color = level_state.tilemap.get_room(point).room_type.color
     if cell.terrain == EnumTerrain.WALL:
       if 'horz' in cell.annotations:
         char = line_chars['T']
@@ -64,6 +64,7 @@ def _draw_game(gamestate, bounds, ctx):
         char = line_chars['BL']
       if 'corner_bottom_right' in cell.annotations:
         char = line_chars['BR']
+      color = level_state.tilemap.get_room(point).room_type.color
     if cell.terrain == EnumTerrain.DOOR_CLOSED:
       char = '+'
     if cell.terrain == EnumTerrain.DOOR_OPEN:

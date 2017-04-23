@@ -213,7 +213,7 @@ class LevelState:
     self.fire(EnumEventNames.door_open, data=cell, entity=entity)
 
   def action_die(self):
-    self.fire(EnumEventNames.player_died)
+    self.fire(EnumEventNames.entity_died, data=None, entity=self.player)
 
 
 class GameState:

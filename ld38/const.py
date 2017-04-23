@@ -6,14 +6,31 @@ from enum import Enum, unique
 from clubsandwich.blt.nice_terminal import terminal
 
 
+def csv_iterator(filename):
+  with (Path(__name__).parent.parent / 'data' / filename).open() as f:
+    reader = csv.reader(f)
+    skip_next_line = True
+    for line in reader:
+      if skip_next_line:
+        skip_next_line = False
+        continue
+      yield line
+
+
+class EnumUppercaseWithLookup(Enum):
+  @classmethod
+  def lookup(cls, k):
+    return getattr(cls, k.upper())
+
+
 @unique
-class EnumMode(Enum):
+class EnumMode(EnumUppercaseWithLookup):
   DEFAULT = 0
   CLOSE = 1
 
 
 @unique
-class EnumTerrain(Enum):
+class EnumTerrain(EnumUppercaseWithLookup):
   EMPTY = 0
   FLOOR = 1
   WALL = 2
@@ -23,26 +40,32 @@ class EnumTerrain(Enum):
 
 
 @unique
-class EnumEntityKind(Enum):
+class EnumEntityKind(EnumUppercaseWithLookup):
   PLAYER = 0
   VERP = 1
 
 
 @unique
-class EnumFeature(Enum):
+class EnumFeature(EnumUppercaseWithLookup):
   NONE = 0
   STAIRS_UP = 1
   STAIRS_DOWN = 2
 
 
 @unique
-class EnumMonsterMode(Enum):
+class EnumMonsterMode(EnumUppercaseWithLookup):
   DEFAULT = 0
   CHASING_PLAYER = 1
 
 
 @unique
-class EnumEventNames(Enum):
+class EnumRoomShape(EnumUppercaseWithLookup):
+  BOX_RANDOM = 0
+  BOX_FULL = 1
+
+
+@unique
+class EnumEventNames(EnumUppercaseWithLookup):
   key_u = "key_u"
   key_d = "key_d"
   key_l = "key_l"
@@ -86,7 +109,19 @@ KEYS_CANCEL = (terminal.TK_ESCAPE,)
 ENTITY_NAME_BY_KIND = {}
 
 EntityName = namedtuple('EntityName', ['subject', 'object', 'death_verb_active'])
-with (Path(__name__).parent.parent / 'data' / 'names.csv').open() as f:
-  reader = csv.reader(f)
-  for line in reader:
-    ENTITY_NAME_BY_KIND[getattr(EnumEntityKind, line[0].upper())] = EntityName(*line[1:])
+for line in csv_iterator('names.csv'):
+  ENTITY_NAME_BY_KIND[EnumEntityKind.lookup(line[0])] = EntityName(*line[1:])
+
+
+RoomType = namedtuple('RoomType', ['shape', 'difficulty', 'monsters', 'chance', 'color'])
+ROOM_TYPES = []
+
+for line in csv_iterator('rooms.csv'):
+  ROOM_TYPES.append(RoomType(
+    shape=EnumRoomShape.lookup(line[0]),
+    difficulty=None if line[1] == '*' else int(line[1]),
+    monsters=set(s.upper() for s in line[2].split(',')),
+    chance=float(line[3]),
+    color=line[4]
+  ))
+  

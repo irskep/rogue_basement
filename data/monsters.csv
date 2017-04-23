@@ -1,0 +1,5 @@
+Enum name,Char,Color,Difficulty,Behaviors,hp_max,strength,
+verp_1,v,ffff00,0,"beeline_visible,random_walk",10,2,
+verp_2,v,ff8800,1,"beeline_visible,random_walk",20,4,
+verp_3,v,ff0000,2,"beeline_target,random_walk",30,8,
+verp_4,v,ffff00,3,"beeline_target,random_walk",40,16,

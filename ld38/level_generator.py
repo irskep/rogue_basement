@@ -1,9 +1,15 @@
 from collections import namedtuple
 from math import floor
-from random import randrange
+from random import randrange, uniform
 from uuid import uuid4
 
-from .const import EnumTerrain, EnumFeature, EnumEntityKind
+from .const import (
+  EnumTerrain,
+  EnumFeature,
+  EnumEntityKind,
+  EnumRoomShape,
+  ROOM_TYPES,
+)
 
 from clubsandwich.geom import Rect, Point, Size
 from clubsandwich.generators import RandomBSPTree
@@ -13,17 +19,49 @@ from clubsandwich.tilemap import TileMap, CellOutOfBoundsError
 DEBUG_ALL_DOORS_OPEN = False
 
 
+def weighted_choice(choices):
+  """``[(choice, weight)]``"""
+  total = sum(w for c, w in choices)
+  r = uniform(0, total)
+  upto = 0
+  for c, w in choices:
+    if upto + w >= r:
+      return c
+    upto += w
+  assert False, "Shouldn't get here"
+
+
 class Room:
-  def __init__(self, rect):
-    self.rect = rect  # may be None
+  def __init__(self, rect, room_type):
     self.room_id = uuid4().hex
+    self.room_type = room_type
     self.neighbor_ids = set()
     self.difficulty = None
 
+    if room_type.shape == EnumRoomShape.BOX_RANDOM:
+      self.rect = rect.get_random_rect(Size(4, 4))
+    if room_type.shape == EnumRoomShape.BOX_FULL:
+      self.rect = rect
 
-def generate_room(bsp_leaf):
-  """Decorate *bsp_leaf* with a :py:class:`Room` object"""
-  bsp_leaf.data['room'] = Room(bsp_leaf.rect.get_random_rect(Size(4, 4)))
+
+def _get_difficulty(bsp_leaf, difficulty_map):
+  for ancestor in bsp_leaf.ancestors:
+    for (k, v) in difficulty_map.items():
+      if v == ancestor:
+        return k
+  raise ValueError("Cannot determine difficulty for this room")
+
+
+def generate_room(bsp_leaf, difficulty_map):
+  """Decorate ``bsp_leaf`` with a :py:class:`Room` object"""
+  difficulty = _get_difficulty(bsp_leaf, difficulty_map)
+
+  room_type_options = [
+    rt for rt in ROOM_TYPES if rt.difficulty is None or rt.difficulty == difficulty]
+
+  bsp_leaf.data['room'] = Room(
+    bsp_leaf.rect,
+    weighted_choice([(rt, rt.chance) for rt in room_type_options]))
   return bsp_leaf.data['room']
 
 
@@ -171,6 +209,14 @@ def engrave_difficulty(root):
       leaf.data['room'].difficulty = i
 
 
+def get_is_room_for_monster(tilemap, point):
+  if point in tilemap.occupied_cells:
+    return False
+  if tilemap.cell(point).feature is not None:
+    return False
+  return True
+
+
 MonsterData = namedtuple('MonsterData', ['kind', 'position', 'difficulty'])
 def place_monsters(tilemap):
   monster_datas = []
@@ -179,7 +225,7 @@ def place_monsters(tilemap):
     point = room.rect.with_inset(2).get_random_point()
 
     i = 0
-    while point in tilemap.occupied_cells and i < 10:
+    while not get_is_room_for_monster(tilemap, point) and i < 10:
       point = room.rect.with_inset(2).get_random_point()
       i += 1
     if i >= 10:
@@ -199,7 +245,14 @@ def _bsp_randrange(level, a, b):
 
 def generate_dungeon(tilemap):
   generator = RandomBSPTree(tilemap.size, 4, randrange_func=_bsp_randrange)
-  rooms = [generate_room(leaf) for leaf in generator.root.leaves]
+  # difficulty: root node for _leaves of that difficulty_
+  difficulty_map = {
+    0: generator.root.get_node_at_path('aa'),
+    1: generator.root.get_node_at_path('ab'),
+    2: generator.root.get_node_at_path('bb'),
+    3: generator.root.get_node_at_path('ba'),
+  }
+  rooms = [generate_room(leaf, difficulty_map) for leaf in generator.root.leaves]
   engrave_rooms(tilemap, rooms)  
   generate_and_engrave_corridors(tilemap, generator.root)
 
