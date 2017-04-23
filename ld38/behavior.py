@@ -203,6 +203,15 @@ class ThrowRockSlowBehavior(StandardEnemyBehavior):
     self.entity.behavior_state['throw_rock_cooldown'] -= 1
 
     if self.entity.behavior_state['throw_rock_cooldown'] <= 0:
+      try:
+        item = next(item for item in self.entity.inventory if item.item_type.id == 'ROCK')
+      except StopIteration:
+        item = None
+      if not item:
+        print("Can't throw, no more rocks in inventory")
+        return False
+      self.entity.inventory.remove(item)
+
       self.entity.behavior_state['throw_rock_cooldown'] = 6
       path = list(self.entity.position.points_bresenham_to(self.level_state.player.position))
       while self.level_state.get_entity_at(path[0]) == self.entity:
@@ -212,19 +221,22 @@ class ThrowRockSlowBehavior(StandardEnemyBehavior):
         print("Can't throw, something's in the way")
         return False
 
-      self.level_state.create_entity(MONSTER_TYPES_BY_ID['ROCK_IN_FLIGHT'], path[0], {
+      rock_in_flight = self.level_state.create_entity(MONSTER_TYPES_BY_ID['ROCK_IN_FLIGHT'], path[0], {
         'path': [None] + path[1:],  # behavior executes immediately but rock is already placed
         'speed': self.rock_speed,
       })
+      rock_in_flight.inventory.append(item)
 
 
 @behavior('path_until_hit')
 class PathUntilHitBehavior(StandardEnemyBehavior):
   def on_player_took_action(self, player, data):
+    # the item to drop at the end must be the entity's only inventory item.
+
     p = self.entity.position
     if not self.entity.behavior_state.get('path', None):
+      self.level_state.drop_item(self.entity.inventory.pop(0), p, entity=self.entity)
       self.level_state.remove_entity(self.entity)
-      self.level_state.drop_item(Item(ITEM_TYPES_BY_ID['ROCK']), p, entity=self.entity)
       return True
 
     next_point = self.entity.behavior_state['path'].pop(0)
@@ -240,7 +252,7 @@ class PathUntilHitBehavior(StandardEnemyBehavior):
       self.level_state.action_monster_move(self.entity, next_point)
       return True
 
+    self.level_state.drop_item(self.entity.inventory.pop(0), p, entity=self.entity)
     self.level_state.remove_entity(self.entity)
-    self.level_state.drop_item(Item(ITEM_TYPES_BY_ID['ROCK']), p, entity=self.entity)
     return True
     
