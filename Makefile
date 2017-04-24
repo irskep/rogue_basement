@@ -13,3 +13,4 @@ app: dist
 	mkdir -p "dist/Rogue Basement"
 	cp -r "dist/Rogue Basement.app" "dist/Rogue Basement/"
 	cp Manual.txt "dist/Rogue Basement/Manual.txt"
+	cd dist && zip -vr "RogueBasement.zip" "Rogue Basement/" -x "*.DS_Store"
