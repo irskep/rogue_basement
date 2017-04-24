@@ -239,7 +239,7 @@ class LevelState:
       'speed': speed,
     })
     ### HACK HACK HACK HACK: thrown object takes strength from thrower ###
-    rock_in_flight.stats['strenght'] = entity.stats['strength']
+    rock_in_flight.stats['strength'] = entity.stats['strength']
     rock_in_flight.inventory.append(item)
     
     if entity.is_player:

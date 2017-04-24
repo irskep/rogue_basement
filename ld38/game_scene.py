@@ -343,6 +343,7 @@ class GameScene(UIScene):
       ### HACK HACK HACK HACK ###
       # for "balance", replenish health between rooms
       level_state.player.state['hp'] = level_state.player.stats['hp_max']
+      self.stats_view.update()
     
     room = level_state.tilemap.get_room(entity.position)
     if room and room.difficulty is not None:

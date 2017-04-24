@@ -309,7 +309,7 @@ def generate_dungeon(tilemap):
   stairs_up = stairs_up_room.rect.with_inset(1).get_random_point()
 
   stairs_down_room = get_room_nearest(
-    generator.root.get_node_at_path('ba').leaves, Point(tilemap.size.width / 2, 0))
+    generator.root.get_node_at_path('ba').leaves, Point(tilemap.size.width / 2, tilemap.size.height / 2))
   stairs_down = stairs_down_room.rect.with_inset(1).get_random_point()
 
   tilemap.points_of_interest['stairs_up'] = stairs_up
