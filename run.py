@@ -69,7 +69,7 @@ class GameLoop(DirectorLoop):
     terminal.set("""
     window.resizeable=true;
     window.size={size.width}x{size.height};
-    font: NotoMono-Regular.ttf, size=10x16;
+    font: assets/NotoMono-Regular.ttf, size=10x16;
     """.format(size=WINDOW_SIZE))
 
   def get_initial_scene(self):

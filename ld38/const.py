@@ -1,3 +1,4 @@
+import os
 import csv
 import re
 from math import floor
@@ -9,7 +10,7 @@ from clubsandwich.blt.nice_terminal import terminal
 
 
 def csv_iterator(filename):
-  with (Path(__name__).parent.parent / 'data' / filename).open() as f:
+  with (Path(os.path.abspath(__name__)).parent / 'data' / filename).open() as f:
     reader = csv.reader(f)
     skip_next_line = True
     for line in reader:
