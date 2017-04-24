@@ -1,0 +1,91 @@
+.-,--.                  ,-,---.                           .  
+ `|__/ ,-. ,-. . . ,-.   '|___/ ,-. ,-. ,-. ,-,-. ,-. ,-. |- 
+ )| \  | | | | | | |-'   ,|   \ ,-| `-. |-' | | | |-' | | |
+ `'  ` `-' `-| `-^ `-'  `-^---' `-^ `-' `-' ' ' ' `-' ' ' `' 
+            ,|                                               
+            `'
+      __.      
+    _/ / \
+   /   \  *      _______________________________________
+──/─────\──     / Thanks so much for downloading        \
+  \ - - /    ──/  ROGUE BASEMENT! I hope you like it!!! |
+&  \ - /  &    |                    -Steve             / 
+ \───+───/     \______________________________________/ 
+     |
+\────|────/
+_\       /_
+
+===========================================================
+                       Instructions
+===========================================================
+
+1. WHAT AM I LOOKING AT?
+
+Your screen looks approximately like this:
+
++---------------+-----------------------+
+|     Stats     |                    #  |
++---------------|                    #  |
+|  Health: 100  |                    #  |
+|xxxxxxxxxxxxxxx|   ------------     #  |
+|   Rocks: 0    |   |v......*..|     #  |
+|   Score: 0    |   |..........|     #  |
+|               |   |.....@....+######  |
+|               |   |..........|        |
+|               |   |w.......$.|        |
+|               |   ------------        |
+|               |                       |
++---------------+-----------------------+
+
+You are the `@`. That is you. It is "where you are _at_,"
+so to speak.
+
+You are in a room with walls and a door. Each `.`
+represents an empty floor tile. The straight bars are walls.
+The `+` is a door, which is closed. The `#` is a corridor
+you can walk down.
+
+The `v` is a VERP. It's a kind of monster that tries to
+attack you close up.
+
+The `w` is a WIBBLE. It throws rocks at you from a few
+tiles away.
+
+The `*` is a rock. It is lying on the ground. If you walk
+over to it, you can pick it up by pressing `g` for "get."
+If you do that, the number of rocks in the sidebar will
+go up. Isn't that neat!
+
+The `$` is cash money. It represents your score and has no
+in-game value.
+
+2. MOVEMENT
+
+The `5` and `.` keys are 'wait'. This gives the monsters a
+turn without moving you.
+
+7 8 9  y k u       up
+ \|/    \|/        |
+4-5-6  h-.-l  left-.-right
+ /|\    /|\        |
+7 8 9  n j b      down
+
+2. ITEMS: WHAT YOU CAN DO WITH THEM
+
+When over a `*` or a `$`, press `g` to "get" them.
+
+When there are rocks in your inventory, you can press `t`
+to "throw" them. The game will ask you for a direction,
+and then off it goes. You have to aim in one if your nine
+main directions.
+
+3. DOORS
+
+To open a door, just bump into it.
+
+To close it, stand next to a door, press `c`, and then
+indicate the direction of the door.
+
+===========================================================
+                    Happy adventuring!
+===========================================================
