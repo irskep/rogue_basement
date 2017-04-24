@@ -1,6 +1,7 @@
-import os
 import csv
+import os
 import re
+import sys
 from math import floor
 from collections import namedtuple
 from pathlib import Path
@@ -9,8 +10,9 @@ from enum import Enum, unique
 from clubsandwich.blt.nice_terminal import terminal
 
 
+root = Path(os.path.abspath(sys.argv[0])).parent
 def csv_iterator(filename):
-  with (Path(os.path.abspath(__name__)).parent / 'data' / filename).open() as f:
+  with (root / 'data' / filename).open() as f:
     reader = csv.reader(f)
     skip_next_line = True
     for line in reader:

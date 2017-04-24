@@ -38,3 +38,7 @@ coll = COLLECT(exe,
                strip=False,
                upx=True,
                name='Rogue Basement')
+app = BUNDLE(coll,
+             name='Rogue Basement.app',
+             icon=None,
+             bundle_identifier='com.steveasleep.RogueBasement')

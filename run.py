@@ -1,5 +1,8 @@
 #!/usr/bin/env python
+import os
+import sys
 from enum import Enum
+from pathlib import Path
 
 from clubsandwich.blt.nice_terminal import terminal
 from clubsandwich.director import DirectorLoop
@@ -27,6 +30,8 @@ from ld38.const import EnumEventNames
 
 WINDOW_SIZE = Size(100, 46)
 HALF_WINDOW_SIZE = (Size(80, 25) / 2).floored
+
+root = Path(os.path.abspath(sys.argv[0])).parent
 
 
 LOGO = """
@@ -69,8 +74,8 @@ class GameLoop(DirectorLoop):
     terminal.set("""
     window.resizeable=true;
     window.size={size.width}x{size.height};
-    font: assets/NotoMono-Regular.ttf, size=10x16;
-    """.format(size=WINDOW_SIZE))
+    font: {root}/assets/NotoMono-Regular.ttf, size=10x16;
+    """.format(size=WINDOW_SIZE, root=str(root)))
 
   def get_initial_scene(self):
     return MainMenuScene()

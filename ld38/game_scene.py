@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import sys
 os.environ["PYGLET_SHADOW_WINDOW"] = "false"
 from enum import Enum
 from math import floor
@@ -38,7 +39,8 @@ from .const import (
 DEBUG_PROFILE = False
 
 
-pyglet.resource.path = [str(Path(__name__).parent.parent / 'assets')]
+root = Path(os.path.abspath(sys.argv[0])).parent
+pyglet.resource.path = [str(root / 'assets')]
 tracks = [
   pyglet.resource.media('Q1.mp3'),
   pyglet.resource.media('Q2.mp3'),
