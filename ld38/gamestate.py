@@ -228,9 +228,7 @@ class LevelState:
     while self.get_entity_at(path[0]) == entity:
       path.pop(0)
     entity_in_the_way = self.get_entity_at(path[0])
-    if (not entity.is_player and
-        entity_in_the_way and
-        not entity_in_the_way.is_player):
+    if entity_in_the_way:
       return False
 
     mk_id = item.item_type.id + '_IN_FLIGHT'
