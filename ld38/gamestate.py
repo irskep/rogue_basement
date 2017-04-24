@@ -154,7 +154,7 @@ class LevelState:
       return False
 
     for point in source.position.points_bresenham_to(dest.position):
-      if not self.get_can_see(source, point):
+      if not self.get_can_see(point):
         return False
     return True
 
@@ -192,7 +192,7 @@ class LevelState:
       return False
     return get_is_terrain_passable(cell.terrain)
 
-  def get_can_see(self, entity, position):
+  def get_can_see(self, position):
     cell = self.tilemap.cell(position)
     return get_is_terrain_passable(cell.terrain)
 
