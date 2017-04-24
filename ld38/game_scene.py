@@ -165,8 +165,13 @@ class StatsView(View):
     self.inventory_count = LabelView(
       text="Rocks: 0",
       color_fg="#ffffff",
-      color_bg="#666666",
+      color_bg="#000000",
       layout_options=LayoutOptions.row_top(1).with_updates(top=4, right=1))
+    self.score_label = LabelView(
+      text="Score: 0",
+      color_fg="#ffff00",
+      color_bg="#000000",
+      layout_options=LayoutOptions.row_top(1).with_updates(top=6, right=1))
     super().__init__(subviews=[
       LabelView(
         text="Stats",
@@ -177,6 +182,7 @@ class StatsView(View):
       self.health_label,
       self.progress_bar,
       self.inventory_count,
+      self.score_label,
     ], *args, **kwargs)
     self.update()
 
@@ -188,6 +194,8 @@ class StatsView(View):
       len(self.gamestate.active_level_state.player.inventory))
     self.health_label.text = "Health: {}".format(
       self.gamestate.active_level_state.player.state['hp'])
+    self.score_label.text = "Score: {}".format(
+      self.gamestate.active_level_state.score)
 
   def draw(self, ctx):
     with ctx.temporary_fg('#ffffff'):
@@ -218,12 +226,14 @@ class PauseScene(UIScene):
 
 
 class LoseScene(UIScene):
-  def __init__(self, *args, **kwargs):
+  def __init__(self, score, *args, **kwargs):
     view = WindowView(
       'Game Over',
       layout_options=LayoutOptions.centered(80, 30),
       subviews=[
           LabelView(TEXT_GAME_OVER, layout_options=LayoutOptions.centered('intrinsic', 'intrinsic')),
+          LabelView("Your score: {}".format(score),
+            layout_options=LayoutOptions.row_bottom(1).with_updates(bottom=6)),
           ButtonView(
               text='Aaauuuuggghhhhhh...', callback=self.done,
               layout_options=LayoutOptions.row_bottom(3)),
@@ -236,12 +246,14 @@ class LoseScene(UIScene):
 
 
 class WinScene(UIScene):
-  def __init__(self, *args, **kwargs):
+  def __init__(self, score, *args, **kwargs):
     view = WindowView(
       'You win!',
       layout_options=LayoutOptions.centered(80, 30),
       subviews=[
           LabelView(TEXT_YOU_WIN, layout_options=LayoutOptions.centered('intrinsic', 'intrinsic')),
+          LabelView("Your score: {}".format(score),
+            layout_options=LayoutOptions.row_bottom(1).with_updates(bottom=6)),
           ButtonView(
               text='Thanks!', callback=self.done,
               layout_options=LayoutOptions.row_bottom(3)),
@@ -291,6 +303,7 @@ class GameScene(UIScene):
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_picked_up_item, None)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_died, None)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_attacking, None)
+    level_state.dispatcher.add_subscriber(self, EnumEventNames.score_increased, None)
 
   def exit(self, *args, **kwargs):
     super().exit(*args, **kwargs)
@@ -320,7 +333,7 @@ class GameScene(UIScene):
     cell = level_state.tilemap.cell(entity.position)
     self.log_view.text = ""
     if cell.feature == EnumFeature.STAIRS_DOWN:
-      self.director.push_scene(WinScene())
+      self.director.push_scene(WinScene(level_state.score))
 
     if cell.annotations & {'transition-1-2', 'transition-2-3', 'transition-3-4'}:
       self.player_volume_directions = ['down', 'down', 'down', 'down']
@@ -339,6 +352,10 @@ class GameScene(UIScene):
 
   def on_entity_took_damage(self, entity, data):
     self.stats_view.update()
+
+  def on_score_increased(self, entity, data):
+    self.stats_view.update()
+    self.log("You pick up some loose change.")
 
   def on_door_open(self, entity, data):
     self.log("You open the door.")
@@ -368,7 +385,7 @@ class GameScene(UIScene):
       print("Missing log message for", entity.monster_type.id)
     if entity == self.gamestate.active_level_state.player:
       if DEBUG_PROFILE: pr.dump_stats('profile')
-      self.director.push_scene(LoseScene())
+      self.director.push_scene(LoseScene(self.gamestate.active_level_state.score))
 
   def on_entity_picked_up_item(self, entity, data):
     if entity.is_player:

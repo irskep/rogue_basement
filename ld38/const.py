@@ -112,6 +112,7 @@ class EnumEventNames(EnumUppercaseWithLookup):
   entity_dropped_item = "entity_dropped_item"
   door_open = "door_open"
   player_took_action = "player_took_action"
+  score_increased = "score_increased"
 
 
 KEYS_U = (terminal.TK_UP, terminal.TK_K, terminal.TK_KP_8)

@@ -264,9 +264,13 @@ def place_items(tilemap):
     inner_rect = room.rect.with_inset(1)
     num_items = max(1, round(inner_rect.area * room.room_type.item_density / 100.0))
 
-    for _ in range(num_items):
+    ### HACK: spawn exactly one gold in each room ###
+    for i in range(num_items + 1):
       point = inner_rect.get_random_point()
       it = weighted_choice([(it, it.chance_by_difficulty[room.difficulty]) for it in ITEM_TYPES_BY_ID.values()])
+
+      if i == 0:
+        it = ITEM_TYPES_BY_ID['GOLD']
 
       i = 0
       while not get_can_add_item_at_point(tilemap, point) and i < 10:

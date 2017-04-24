@@ -57,6 +57,8 @@ class RogueBasementTileMap(TileMap):
 
 class LevelState:
   def __init__(self, tilemap):
+    # HACK: score stored on level instead of game
+    self.score = 0
     self.tilemap = tilemap
     self.uuid = uuid4().hex
     self.entities = []
@@ -316,6 +318,13 @@ class LevelState:
       items = self.items_by_position[entity.position]
     except KeyError:
       return False
+
+    # HACK: count score during pickup
+    golds = [item for item in items if item.item_type.id == 'GOLD']
+    self.score += len(golds)
+    self.fire(EnumEventNames.score_increased, data=None, entity=None)
+
+    items = [item for item in items if item.item_type.id != 'GOLD']
     entity.inventory.extend(items)
     del self.items_by_position[entity.position]
     for item in items:
