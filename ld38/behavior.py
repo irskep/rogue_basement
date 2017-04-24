@@ -135,6 +135,7 @@ class StunnableBehavior(Behavior):
       return False
     print("Stunned", entity.monster_type.id)
     self.entity.behavior_state['stun_cooldown'] = 2
+    self.entity.mode = EnumMonsterMode.STUNNED
 
   def on_player_took_action(self, player, data):
     cooldown = self.entity.behavior_state.get('stun_cooldown', 0)

@@ -35,3 +35,4 @@ class Item:
     self.item_type = item_type
     self.position = None  # None if in someone's inventory
     self.uses_remaining = randint(item_type.uses_min, item_type.uses_max)
+    self.data = {}

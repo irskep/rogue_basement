@@ -81,6 +81,7 @@ class EnumMonsterMode(EnumUppercaseWithLookup):
   CHASING = 1
   FLEEING = 2
   SLEEPING = 3
+  STUNNED = 4
 
 
 @unique

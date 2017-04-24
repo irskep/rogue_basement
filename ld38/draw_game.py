@@ -98,6 +98,8 @@ def _draw_game(gamestate, bounds, ctx):
       entity = entity_cache[cell.point]
       color = entity.monster_type.color
       char = entity.monster_type.char
+      if entity.mode == EnumMonsterMode.STUNNED:
+        color = '#0088ff'
 
     with ctx.temporary_fg(color):
       ctx.put(cell.point, char)

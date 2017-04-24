@@ -236,6 +236,8 @@ class LevelState:
       'path': [None] + path[1:],  # behavior executes immediately but rock is already placed
       'speed': speed,
     })
+    ### HACK HACK HACK HACK: thrown object takes strength from thrower ###
+    rock_in_flight.stats['strenght'] = entity.stats['strength']
     rock_in_flight.inventory.append(item)
     
     if entity.is_player:
@@ -300,7 +302,11 @@ class LevelState:
     self.fire(EnumEventNames.entity_took_damage, data=a, entity=b)
     if b.state['hp'] <= 0:
       self.fire(EnumEventNames.entity_died, data=None, entity=b)
+      p = b.position
       self.remove_entity(b)
+      # TODO: do this in remove_entity() maybe?
+      for i in b.inventory:
+        self.drop_item(i, p)
       if b.is_player:
         print("Aborting all events due to player death")
         self.dispatcher._force_abandon_current_events = True
@@ -310,11 +316,13 @@ class LevelState:
       items = self.items_by_position[entity.position]
     except KeyError:
       return False
+    entity.inventory.extend(items)
+    del self.items_by_position[entity.position]
     for item in items:
       item.position = None
-      entity.inventory.extend(items)
-      del self.items_by_position[entity.position]
       self.fire(EnumEventNames.entity_picked_up_item, data=item, entity=entity)
+    if entity.is_player:
+      self._fire_player_took_action_if_alive(entity.position)
 
   def open_door(self, entity, position):
     # this is where the logic goes for doors that are hard to open.

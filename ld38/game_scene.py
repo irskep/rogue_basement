@@ -25,6 +25,7 @@ from .const import (
   EnumEventNames,
   EnumMode,
   EnumFeature,
+  EnumMonsterMode,
   ENTITY_NAME_BY_KIND,
   KEYS_U, KEYS_D, KEYS_L, KEYS_R, KEYS_UL, KEYS_UR, KEYS_DL, KEYS_DR,
   KEYS_WAIT,
@@ -76,9 +77,8 @@ TEXT_HELP = """
 Move: arrows, numpad
       hjklyubn
 
-Get: g
-Throw: t
-  (random item)
+Get rock: g
+Throw rock: t
 Close: c
 
 """.strip()
@@ -89,9 +89,23 @@ TEXT_GAME_OVER = """
     _/ / \\
    /   \\  *      ______________________________________
 ──/─────\\──     / Ah, well... another body to feed the \\
-  \\ - - /    --/  mutated skunks...                    |
+  \\ - - /    ──/  mutated skunks...                    |
 &  \\ - /  &    \\_______________________________________/ 
  \\───+───/
+     |
+\\────|────/
+_\\       /_
+"""[1:].rstrip()
+
+
+TEXT_YOU_WIN = """
+      __.      
+    _/ / \\
+   /   \\  *      _______________________________________
+──/─────\\──     / Oh, thank you so much! You might want \\
+  \\ - - /    ──/  to talk to my neighbor, he's also in  |
+&  \\ - /  &    |  the Netherwizard Club...             / 
+ \\───+───/     \\______________________________________/ 
      |
 \\────|────/
 _\\       /_
@@ -143,24 +157,37 @@ class StatsView(View):
     self.progress_bar = ProgressBarView(
       fraction=1,
       layout_options=LayoutOptions.row_top(1).with_updates(top=3, right=1))
-    super().__init__(*args, **kwargs)
-    self.add_subview(LabelView(
-      text="Stats",
-      color_fg='#ffffff',
-      color_bg='#660000',
-      clear=True,
-      layout_options=LayoutOptions.row_top(1).with_updates(right=1)))
-    self.add_subview(LabelView(
-      text="Health",
-      color_fg='#ffffff',
+    self.health_label = LabelView(
+      text="Health: ?",
+      color_fg="#ffffff",
       color_bg='#000000',
-      layout_options=LayoutOptions.row_top(1).with_updates(right=1, top=2)))
-    self.add_subview(self.progress_bar)
+      layout_options=LayoutOptions.row_top(1).with_updates(top=2, right=1))
+    self.inventory_count = LabelView(
+      text="Rocks: 0",
+      color_fg="#ffffff",
+      color_bg="#666666",
+      layout_options=LayoutOptions.row_top(1).with_updates(top=4, right=1))
+    super().__init__(subviews=[
+      LabelView(
+        text="Stats",
+        color_fg='#ffffff',
+        color_bg='#660000',
+        clear=True,
+        layout_options=LayoutOptions.row_top(1).with_updates(right=1)),
+      self.health_label,
+      self.progress_bar,
+      self.inventory_count,
+    ], *args, **kwargs)
+    self.update()
 
   def update(self):
     self.progress_bar.fraction = (
       self.gamestate.active_level_state.player.state['hp'] /
       self.gamestate.active_level_state.player.stats['hp_max'])
+    self.inventory_count.text = "Rocks: {}".format(
+      len(self.gamestate.active_level_state.player.inventory))
+    self.health_label.text = "Health: {}".format(
+      self.gamestate.active_level_state.player.state['hp'])
 
   def draw(self, ctx):
     with ctx.temporary_fg('#ffffff'):
@@ -214,9 +241,7 @@ class WinScene(UIScene):
       'You win!',
       layout_options=LayoutOptions.centered(80, 30),
       subviews=[
-          LabelView(
-            'You close the portal. Good job.',
-            layout_options=LayoutOptions(height=1, top=1, bottom=None)),
+          LabelView(TEXT_YOU_WIN, layout_options=LayoutOptions.centered('intrinsic', 'intrinsic')),
           ButtonView(
               text='Thanks!', callback=self.done,
               layout_options=LayoutOptions.row_bottom(3)),
@@ -299,6 +324,10 @@ class GameScene(UIScene):
 
     if cell.annotations & {'transition-1-2', 'transition-2-3', 'transition-3-4'}:
       self.player_volume_directions = ['down', 'down', 'down', 'down']
+
+      ### HACK HACK HACK HACK ###
+      # for "balance", replenish health between rooms
+      level_state.player.state['hp'] = level_state.player.stats['hp_max']
     
     room = level_state.tilemap.get_room(entity.position)
     if room and room.difficulty is not None:
@@ -327,7 +356,10 @@ class GameScene(UIScene):
       print("Missing log message for", data.monster_type.id)
       return
 
-    self.log("{} hits {}.".format(name1, name2))
+    if data.mode == EnumMonsterMode.STUNNED:
+      self.log("{} hits {}. It is stunned.".format(name1, name2))
+    else:
+      self.log("{} hits {}.".format(name1, name2))
 
   def on_entity_died(self, entity, data):
     try:
@@ -344,6 +376,7 @@ class GameScene(UIScene):
     else:
       name = ENTITY_NAME_BY_KIND[entity.monster_type.id].subject
       self.log("{} picks up a {}".format(name, data.item_type.id))
+    self.stats_view.update()
 
   def terminal_read(self, val):
     if DEBUG_PROFILE: pr.enable()
