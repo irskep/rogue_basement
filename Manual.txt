@@ -86,6 +86,10 @@ To open a door, just bump into it.
 To close it, stand next to a door, press `c`, and then
 indicate the direction of the door.
 
+4. OBJECTIVE
+
+You are trying to reach "the end," signified by a `>`.
+
 ===========================================================
                     Happy adventuring!
 ===========================================================

@@ -7,3 +7,9 @@ dist2:
 	pyinstaller "Rogue Basement.spec"
 
 dist: clean dist2
+
+app: dist
+	rm -rf "dist/Rogue Basement"
+	mkdir -p "dist/Rogue Basement"
+	cp -r "dist/Rogue Basement.app" "dist/Rogue Basement/"
+	cp Manual.txt "dist/Rogue Basement/Manual.txt"
