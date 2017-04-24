@@ -2,4 +2,4 @@ id,character,color,uses_min,uses_max,effect,chance_0,chance_1,chance_2,chance_3
 inf_ice,?,#72c3cb,0,0,ice_walls,0,0,0,0
 inf_wind,?,#d0d6ce,0,0,mighty_wind,0,0,0,0
 rock,*,#6a867d,0,0,,1,1,1,1
-gold,$,#ffff00,0,0,,0,0,0,0
+gold,$,#aaaa00,0,0,,0,0,0,0
