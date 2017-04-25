@@ -267,14 +267,18 @@ class WinScene(UIScene):
     self.director.pop_to_first_scene()
 
 
+
+players = [pyglet.media.Player() for _ in range(4)]
+for i, player in enumerate(players):
+  player.queue(tracks[i])
+  player.eos_action = player.EOS_LOOP
 class GameScene(UIScene):
   def __init__(self, *args, **kwargs):
     self.player_volume_directions = ['up', 'down', 'down', 'down']
 
-    self.players = [pyglet.media.Player() for _ in range(4)]
+    self.players = players
     for i, player in enumerate(self.players):
-      player.queue(tracks[i])
-      player.eos_action = player.EOS_LOOP
+      player.seek(0)
       if i == 0:
         player.play()
       else:
@@ -307,10 +311,11 @@ class GameScene(UIScene):
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_attacking, None)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.score_increased, None)
 
-  def exit(self, *args, **kwargs):
-    super().exit(*args, **kwargs)
+  def exit(self):
+    super().exit()
     for player in self.players:
-      player.delete()
+      player.pause()
+      player.seek(0)
 
   @property
   def mode(self):
