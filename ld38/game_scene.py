@@ -141,6 +141,9 @@ class GameView(View):
     self.last_known_player_position = Point(0, 0)
 
   def draw(self, ctx):
+    ctx.bkcolor('#000000')
+    ctx.clear_area(self.bounds)
+
     current_player_position = self.gamestate.active_level_state.player.position  
     if current_player_position is not None:
       self.last_known_player_position = current_player_position
@@ -311,11 +314,17 @@ class GameScene(UIScene):
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_attacking, None)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.score_increased, None)
 
+  def enter(self, ctx):
+    super().enter(ctx)
+    self.ctx.clear()
+
   def exit(self):
     super().exit()
+    self.ctx.clear()
     for player in self.players:
       player.pause()
       player.seek(0)
+    if DEBUG_PROFILE: pr.dump_stats('profile')
 
   @property
   def mode(self):
