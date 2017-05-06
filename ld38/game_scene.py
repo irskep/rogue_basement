@@ -127,11 +127,11 @@ class ProgressBarView(View):
     super().__init__(*args, **kwargs)
 
   def draw(self, ctx):
-    with ctx.temporary_bg(self.color_bg):
-      ctx.clear_area(self.bounds)
+    ctx.bkcolor(self.color_bg)
+    ctx.clear_area(self.bounds)
     frac_width = floor(self.bounds.width * self.fraction)
-    with ctx.temporary_bg(self.color_fg):
-      ctx.clear_area(self.bounds.with_size(Size(frac_width, self.bounds.height)))
+    ctx.bkcolor(self.color_fg)
+    ctx.clear_area(self.bounds.with_size(Size(frac_width, self.bounds.height)))
 
 
 class GameView(View):
@@ -203,8 +203,8 @@ class StatsView(View):
       self.gamestate.active_level_state.score)
 
   def draw(self, ctx):
-    with ctx.temporary_fg('#ffffff'):
-      draw_line_vert(Point(self.bounds.x2, self.bounds.y), self.bounds.height)
+    ctx.color('#ffffff')
+    draw_line_vert(Point(self.bounds.x2, self.bounds.y), self.bounds.height)
 
 
 class PauseScene(UIScene):
