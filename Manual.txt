@@ -70,6 +70,9 @@ turn without moving you.
  /|\    /|\        |
 7 8 9  n j b      down
 
+If you walk into a monster, you will attack them.
+How exciting!
+
 2. ITEMS: WHAT YOU CAN DO WITH THEM
 
 When over a `*` or a `$`, press `g` to "get" them.
