@@ -21,7 +21,6 @@ C_MONSTER_STUNNED = '#0088ff'
 
 def draw_game(gamestate, bounds, ctx):
   with ctx.translate(bounds.origin * -1):
-    #with ctx.crop_before_send(Rect(Point(0, 0), size)):
     _draw_game(gamestate, bounds, ctx)
 
 def _draw_game(gamestate, bounds, ctx):
