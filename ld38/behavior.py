@@ -65,23 +65,23 @@ class KeyboardMovementBehavior(Behavior):
       EnumEventNames.key_get,
     ])
 
-  def on_key_u(self, entity, data):
+  def on_key_u(self, event):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(0, -1))
-  def on_key_d(self, entity, data):
+  def on_key_d(self, event):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(0, 1))
-  def on_key_l(self, entity, data):
+  def on_key_l(self, event):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(-1, 0))
-  def on_key_r(self, entity, data):
+  def on_key_r(self, event):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(1, 0))
-  def on_key_ul(self, entity, data):
+  def on_key_ul(self, event):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(-1, -1))
-  def on_key_ur(self, entity, data):
+  def on_key_ur(self, event):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(1, -1))
-  def on_key_dl(self, entity, data):
+  def on_key_dl(self, event):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(-1, 1))
-  def on_key_dr(self, entity, data):
+  def on_key_dr(self, event):
     self.level_state.action_player_move(self.entity, self.entity.position + Point(1, 1))
-  def on_key_get(self, entity, data):
+  def on_key_get(self, event):
     self.level_state.action_pickup_item(self.entity)
 
 
@@ -102,9 +102,9 @@ class CompositeBehavior(Behavior):
       for b in self.sub_behaviors
       if hasattr(b, k)]
 
-    def handler(entity, data):
+    def handler(*args, **kwargs):
       for method in methods:
-        if method(entity, data):
+        if method(*args, **kwargs):
           return True
       return False
     return handler
@@ -117,7 +117,7 @@ class StandardEnemyBehavior(Behavior):
 
 @behavior('sleep')
 class SleepBehavior(StandardEnemyBehavior):
-  def on_player_took_action(self, player, data):
+  def on_player_took_action(self, event):
     self.entity.mode = EnumMonsterMode.DEFAULT
     return True
 
@@ -130,17 +130,15 @@ class StunnableBehavior(Behavior):
       EnumEventNames.player_took_action,
     ])
 
-  def on_entity_attacked(self, entity, data):
-    if entity is not self.entity:
+  def on_entity_attacked(self, event):
+    if event.entity is not self.entity:
       return False
-    print("Stunned", entity.monster_type.id)
     self.entity.behavior_state['stun_cooldown'] = 2
     self.entity.mode = EnumMonsterMode.STUNNED
 
-  def on_player_took_action(self, player, data):
+  def on_player_took_action(self, event):
     cooldown = self.entity.behavior_state.get('stun_cooldown', 0)
     if cooldown:
-      print("Still stunned", cooldown)
       self.entity.behavior_state['stun_cooldown'] -= 1
       return True
     else:
@@ -149,7 +147,7 @@ class StunnableBehavior(Behavior):
 
 @behavior('random_walk')
 class RandomWalkBehavior(StandardEnemyBehavior):
-  def on_player_took_action(self, player, data):
+  def on_player_took_action(self, event):
     if self.entity.position.manhattan_distance_to(self.level_state.player.position) > 40:
       self.entity.mode = EnumMonsterMode.SLEEPING
       return True
@@ -164,10 +162,9 @@ class RandomWalkBehavior(StandardEnemyBehavior):
 
 @behavior('pick_up_rocks')
 class PickUpRocksBehavior(StandardEnemyBehavior):
-  def on_player_took_action(self, player, data):
+  def on_player_took_action(self, event):
     possibilities = self.level_state.get_passable_neighbors(self.entity)
     if not possibilities:
-      print("No neighbors")
       return False
     self.entity.mode = EnumMonsterMode.DEFAULT
 
@@ -187,7 +184,7 @@ class PickUpRocksBehavior(StandardEnemyBehavior):
 @behavior('beeline_visible')
 @behavior('beeline_target')  # temporary
 class BeelineBehavior(StandardEnemyBehavior):
-  def on_player_took_action(self, player, data):
+  def on_player_took_action(self, event):
     if not self.level_state.test_line_of_sight(self.entity, self.level_state.player):
       return False
 
@@ -208,7 +205,7 @@ class Range5VisibleBehavior(StandardEnemyBehavior):
     super().__init__(*args, **kwargs)
     self.best_range = 5
 
-  def on_player_took_action(self, player, data):
+  def on_player_took_action(self, event):
     if not self.level_state.test_line_of_sight(self.entity, self.level_state.player):
       return False
 
@@ -245,7 +242,7 @@ class ThrowRockSlowBehavior(StandardEnemyBehavior):
     super().__init__(*args, **kwargs)
     self.rock_speed = 1
 
-  def on_player_took_action(self, player, data):
+  def on_player_took_action(self, event):
     if not self.level_state.test_line_of_sight(self.entity, self.level_state.player):
       return False
 
@@ -268,7 +265,7 @@ class ThrowRockSlowBehavior(StandardEnemyBehavior):
 
 @behavior('path_until_hit')
 class PathUntilHitBehavior(StandardEnemyBehavior):
-  def on_player_took_action(self, player, data, iterations_left=None):
+  def on_player_took_action(self, event, iterations_left=None):
     if iterations_left is None:
       iterations_left = self.entity.behavior_state['speed']
     iterations_left -= 1
@@ -298,6 +295,6 @@ class PathUntilHitBehavior(StandardEnemyBehavior):
     self.level_state.drop_item(self.entity.inventory.pop(0), p, entity=self.entity)
     self.level_state.remove_entity(self.entity)
 
-    self.on_player_took_action(player, data, iterations_left - 1)
+    self.on_player_took_action(event, iterations_left - 1)
     return True
     

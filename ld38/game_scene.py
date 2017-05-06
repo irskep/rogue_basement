@@ -344,9 +344,9 @@ class GameScene(UIScene):
     self.log_view.text = text
     print(text)
 
-  def on_entity_moved(self, entity, data):
+  def on_entity_moved(self, event):
     level_state = self.gamestate.active_level_state
-    cell = level_state.tilemap.cell(entity.position)
+    cell = level_state.tilemap.cell(event.entity.position)
     self.log_view.text = ""
     if cell.feature == EnumFeature.STAIRS_DOWN:
       self.director.push_scene(WinScene(level_state.score))
@@ -359,57 +359,57 @@ class GameScene(UIScene):
       level_state.player.state['hp'] = level_state.player.stats['hp_max']
       self.stats_view.update()
     
-    room = level_state.tilemap.get_room(entity.position)
+    room = level_state.tilemap.get_room(event.entity.position)
     if room and room.difficulty is not None:
       self.player_volume_directions = ['down', 'down', 'down', 'down']
       self.player_volume_directions[room.difficulty] = 'up'
 
-  def on_entity_bumped(self, entity, data):
+  def on_entity_bumped(self, event):
     self.log("Oof!")
 
-  def on_entity_took_damage(self, entity, data):
+  def on_entity_took_damage(self, event):
     self.stats_view.update()
 
-  def on_score_increased(self, entity, data):
+  def on_score_increased(self, event):
     self.stats_view.update()
     self.log("You pick up some loose change.")
 
-  def on_door_open(self, entity, data):
+  def on_door_open(self, event):
     self.log("You open the door.")
 
-  def on_entity_attacking(self, entity, data):
+  def on_entity_attacking(self, event):
     try:
-      name1 = ENTITY_NAME_BY_KIND[entity.monster_type.id].subject
+      name1 = ENTITY_NAME_BY_KIND[event.entity.monster_type.id].subject
     except KeyError:
-      print("Missing log message for", entity.monster_type.id)
+      print("Missing log message for", event.entity.monster_type.id)
       return
 
     try:
-      name2 = ENTITY_NAME_BY_KIND[data.monster_type.id].object
+      name2 = ENTITY_NAME_BY_KIND[event.data.monster_type.id].object
     except KeyError:
-      print("Missing log message for", data.monster_type.id)
+      print("Missing log message for", event.data.monster_type.id)
       return
 
-    if data.mode == EnumMonsterMode.STUNNED:
+    if event.data.mode == EnumMonsterMode.STUNNED:
       self.log("{} hits {}. It is stunned.".format(name1, name2))
     else:
       self.log("{} hits {}.".format(name1, name2))
 
-  def on_entity_died(self, entity, data):
+  def on_entity_died(self, event):
     try:
-      name = ENTITY_NAME_BY_KIND[entity.monster_type.id].subject
+      name = ENTITY_NAME_BY_KIND[event.entity.monster_type.id].subject
     except KeyError:
-      print("Missing log message for", entity.monster_type.id)
-    if entity == self.gamestate.active_level_state.player:
+      print("Missing log message for", event.entity.monster_type.id)
+    if event.entity == self.gamestate.active_level_state.player:
       if DEBUG_PROFILE: pr.dump_stats('profile')
       self.director.push_scene(LoseScene(self.gamestate.active_level_state.score))
 
-  def on_entity_picked_up_item(self, entity, data):
-    if entity.is_player:
-      self.log("You picked up a {}".format(data.item_type.id))
+  def on_entity_picked_up_item(self, event):
+    if event.entity.is_player:
+      self.log("You picked up a {}".format(event.data.item_type.id))
     else:
-      name = ENTITY_NAME_BY_KIND[entity.monster_type.id].subject
-      self.log("{} picks up a {}".format(name, data.item_type.id))
+      name = ENTITY_NAME_BY_KIND[event.entity.monster_type.id].subject
+      self.log("{} picks up a {}".format(name, event.data.item_type.id))
     self.stats_view.update()
 
   def terminal_read(self, val):

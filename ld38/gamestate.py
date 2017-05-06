@@ -1,6 +1,7 @@
 from collections import deque, defaultdict
 from uuid import uuid4
 
+from clubsandwich.event_dispatcher import EventDispatcher
 from clubsandwich.geom import Size, Point
 from clubsandwich.tilemap import TileMap, Cell, CellOutOfBoundsError
 
@@ -16,7 +17,6 @@ from .const import (
   MONSTER_TYPES_BY_ID,
   ITEM_TYPES_BY_ID,
 )
-from .dispatcher import EventDispatcher
 
 
 LEVEL_SIZE = Size(100, 60)
@@ -134,14 +134,14 @@ class LevelState:
   ### event stuff ###
 
   def fire(self, name, data=None, entity=None):
-    self.event_queue.append((name, data, entity))
+    self.event_queue.append((name, entity, data))
 
   def consume_events(self):
     assert not self._is_applying_events
     self._is_applying_events = True
     while self.event_queue:
-      (name, data, entity) = self.event_queue.popleft()
-      self.dispatcher.fire(name, data, entity)
+      (name, entity, data) = self.event_queue.popleft()
+      self.dispatcher.fire(name, entity, data)
     self._is_applying_events = False
 
   ### actions ###
@@ -308,8 +308,7 @@ class LevelState:
       for i in b.inventory:
         self.drop_item(i, p)
       if b.is_player:
-        print("Aborting all events due to player death")
-        self.dispatcher._force_abandon_current_events = True
+        self.dispatcher.stop_propagation()
 
   def action_pickup_item(self, entity):
     try:

@@ -40,19 +40,20 @@ def _draw_game(gamestate, bounds, ctx):
     nonlocal pointscache_color
     nonlocal pointscache_values
     nonlocal pointscache_origin
-    if not pointscache_values:
-      return
-    ctx.color(pointscache_color)
-    ctx.print(pointscache_origin, ''.join(pointscache_values))
+    if pointscache_values:
+      ctx.color(pointscache_color)
+      ctx.print(pointscache_origin, ''.join(pointscache_values))
     pointscache_color = None
     pointscache_values = None
     pointscache_origin = None
 
   for y in range(bounds.origin.y, bounds.origin.y + bounds.size.height):
+    if y < 0:
+      continue
     for x in range(bounds.origin.x, bounds.origin.x + bounds.size.width):
       point = Point(x, y)
       try:
-        cell = level_state.tilemap.cell(point)
+        cell = level_state.tilemap[point]
       except IndexError:
         continue
       except CellOutOfBoundsError:
