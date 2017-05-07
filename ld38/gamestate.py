@@ -83,13 +83,18 @@ class LevelState:
     for monster_data in self.tilemap.points_of_interest['monsters']:
       self.create_entity(monster_data.monster_type, monster_data.position)
 
+    self.level_memory_cache = set()
     self._update_los_cache()
 
   def _update_los_cache(self):
     self.los_cache = get_visible_points(self.player.position, self.get_can_see)
+    self.level_memory_cache.update(self.los_cache)
 
   def get_can_player_see(self, point):
     return point in self.los_cache
+
+  def get_can_player_remember(self, point):
+    return point in self.level_memory_cache
 
   def create_entity(self, monster_type, position, behavior_state=None):
     mt = monster_type
@@ -231,6 +236,7 @@ class LevelState:
       return False
     cell.terrain = EnumTerrain.DOOR_CLOSED
     self._fire_player_took_action_if_alive(position)
+    self._update_los_cache()
     return True
 
   def action_throw(self, entity, item, target_position, speed):
