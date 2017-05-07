@@ -4,6 +4,7 @@ from uuid import uuid4
 from clubsandwich.event_dispatcher import EventDispatcher
 from clubsandwich.geom import Size, Point
 from clubsandwich.tilemap import TileMap, Cell, CellOutOfBoundsError
+from clubsandwich.line_of_sight import get_visible_points
 
 from .entity import Entity, Item
 from .behavior import (
@@ -81,6 +82,14 @@ class LevelState:
 
     for monster_data in self.tilemap.points_of_interest['monsters']:
       self.create_entity(monster_data.monster_type, monster_data.position)
+
+    self._update_los_cache()
+
+  def _update_los_cache(self):
+    self.los_cache = get_visible_points(self.player.position, self.get_can_see)
+
+  def get_can_player_see(self, point):
+    return point in self.los_cache
 
   def create_entity(self, monster_type, position, behavior_state=None):
     mt = monster_type
@@ -193,8 +202,11 @@ class LevelState:
     return get_is_terrain_passable(cell.terrain)
 
   def get_can_see(self, position):
-    cell = self.tilemap.cell(position)
-    return get_is_terrain_passable(cell.terrain)
+    try:
+      cell = self.tilemap.cell(position)
+      return get_is_terrain_passable(cell.terrain)
+    except CellOutOfBoundsError:
+      return False
 
   def get_can_open_door(self, entity):
     return entity.is_player
@@ -251,6 +263,7 @@ class LevelState:
     if target_entity:
       self.action_attack(entity, target_entity)
       self._fire_player_took_action_if_alive(position)
+      self._update_los_cache()
       return True
 
     if self.get_can_move(entity, position):
@@ -259,10 +272,12 @@ class LevelState:
       self.entity_by_position[position] = entity
       self.fire(EnumEventNames.entity_moved, data=entity, entity=entity)
       self._fire_player_took_action_if_alive(position)
+      self._update_los_cache()
       return True
     elif cell.terrain == EnumTerrain.DOOR_CLOSED and self.get_can_open_door(entity):
       self.open_door(entity, position)
       self._fire_player_took_action_if_alive(position)
+      self._update_los_cache()
       return True
     else:
       self.fire(EnumEventNames.entity_bumped, data=cell, entity=entity)
@@ -297,7 +312,6 @@ class LevelState:
   def action_attack(self, a, b):
     self.fire(EnumEventNames.entity_attacking, data=b, entity=a)
     self.fire(EnumEventNames.entity_attacked, data=a, entity=b)
-    print(a.stats, b.state)
     b.state['hp'] -= a.stats['strength']
     self.fire(EnumEventNames.entity_took_damage, data=a, entity=b)
     if b.state['hp'] <= 0:
@@ -318,12 +332,19 @@ class LevelState:
 
     # HACK: count score during pickup
     golds = [item for item in items if item.item_type.id == 'GOLD']
-    self.score += len(golds)
-    self.fire(EnumEventNames.score_increased, data=None, entity=None)
+
+    if entity == self.player:
+      self.score += len(golds)
+      self.fire(EnumEventNames.score_increased, data=None, entity=None)
 
     items = [item for item in items if item.item_type.id != 'GOLD']
     entity.inventory.extend(items)
-    del self.items_by_position[entity.position]
+
+    if entity == self.player:
+      del self.items_by_position[entity.position]
+    else:
+      self.items_by_position[entity.position] = golds
+
     for item in items:
       item.position = None
       self.fire(EnumEventNames.entity_picked_up_item, data=item, entity=entity)

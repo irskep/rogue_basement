@@ -4,8 +4,9 @@ from .const import EnumTerrain, EnumFeature, EnumMonsterMode
 
 from clubsandwich.blt.nice_terminal import terminal
 from clubsandwich.draw import LINE_STYLES
-from clubsandwich.geom import Rect, Point
+from clubsandwich.geom import Rect, Point, Size
 from clubsandwich.tilemap import CellOutOfBoundsError
+from clubsandwich.line_of_sight import get_visible_points
 
 
 C_DEFAULT = '#ffffff'
@@ -20,18 +21,20 @@ C_MONSTER_STUNNED = '#0088ff'
 
 
 def draw_game(gamestate, bounds, ctx):
-  with ctx.translate(bounds.origin * -1):
-    _draw_game(gamestate, bounds, ctx)
-
-def _draw_game(gamestate, bounds, ctx):
-  line_chars = LINE_STYLES['single']
-
   level_state = gamestate.active_level_state
-
   entity_cache = {}
   for entity in level_state.entities:
     if entity.position and bounds.contains(entity.position):
       entity_cache[entity.position] = entity
+
+  with ctx.translate(bounds.origin * -1):
+    _draw_game(gamestate, bounds, ctx, entity_cache)
+
+
+def _draw_game(gamestate, bounds, ctx, entity_cache):
+  line_chars = LINE_STYLES['single']
+
+  level_state = gamestate.active_level_state
 
   pointscache_color = None
   pointscache_values = None
@@ -52,6 +55,9 @@ def _draw_game(gamestate, bounds, ctx):
       continue
     for x in range(bounds.origin.x, bounds.origin.x + bounds.size.width):
       point = Point(x, y)
+      if not level_state.get_can_player_see(point):
+        continue
+
       try:
         cell = level_state.tilemap[point]
       except IndexError:
