@@ -163,12 +163,12 @@ class StatsView(View):
       fraction=1,
       layout_options=LayoutOptions.row_top(1).with_updates(top=3, right=1))
     self.health_label = LabelView(
-      text="Health: ?",
+      text="  Health: ?  ",
       color_fg="#ffffff",
       color_bg='#000000',
       layout_options=LayoutOptions.row_top(1).with_updates(top=2, right=1))
     self.inventory_count = LabelView(
-      text="Rocks: 0",
+      text="  Rocks: 0  ",
       color_fg="#ffffff",
       color_bg="#000000",
       layout_options=LayoutOptions.row_top(1).with_updates(top=4, right=1))
@@ -195,9 +195,11 @@ class StatsView(View):
     self.progress_bar.fraction = (
       self.gamestate.active_level_state.player.state['hp'] /
       self.gamestate.active_level_state.player.stats['hp_max'])
-    self.inventory_count.text = "Rocks: {}".format(
+    self.inventory_count.text = "  Rocks: {}  ".format(
       len(self.gamestate.active_level_state.player.inventory))
-    self.health_label.text = "Health: {}".format(
+    # HACK: extra padding so the label clears its background properly when it
+    # shrinks
+    self.health_label.text = "  Health: {}  ".format(
       self.gamestate.active_level_state.player.state['hp'])
     self.score_label.text = "Score: {}".format(
       self.gamestate.active_level_state.score)

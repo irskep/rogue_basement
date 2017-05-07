@@ -240,15 +240,19 @@ class LevelState:
     return True
 
   def action_throw(self, entity, item, target_position, speed):
-    entity.inventory.remove(item)
-
     path = list(entity.position.points_bresenham_to(target_position))
     while self.get_entity_at(path[0]) == entity:
       path.pop(0)
+
+    if not self.get_can_move(entity, path[0]):
+      return False
+
+
     entity_in_the_way = self.get_entity_at(path[0])
     if entity_in_the_way:
       return False
 
+    entity.inventory.remove(item)
     mk_id = item.item_type.id + '_IN_FLIGHT'
     rock_in_flight = self.create_entity(MONSTER_TYPES_BY_ID[mk_id], path[0], {
       'path': [None] + path[1:],  # behavior executes immediately but rock is already placed
