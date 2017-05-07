@@ -287,6 +287,8 @@ class GameScene(UIScene):
       else:
         player.volume = 0
 
+    self.log_messages = []
+
     self._mode = EnumMode.DEFAULT
     self.gamestate = GameState()
     self.log_view = LabelView(
@@ -341,8 +343,30 @@ class GameScene(UIScene):
       self.log_view.text = "Throw where? (Pick a direction)"
 
   def log(self, text):
-    self.log_view.text = text
     print(text)
+    self.log_messages.append(text)
+
+  def update_log(self):
+    if self.log_messages:
+      parts = []
+      last_message = self.log_messages[0]
+      dupe_count = 1
+      for m in self.log_messages[1:]:
+        if m == last_message:
+          dupe_count += 1
+        else:
+          if dupe_count > 1:
+            parts.append('{} (x{})'.format(last_message, dupe_count))
+          else:
+            parts.append(last_message)
+          dupe_count = 1
+          last_message = m
+      if dupe_count > 1:
+        parts.append('{} (x{})'.format(last_message, dupe_count))
+      else:
+        parts.append(last_message)
+      self.log_view.text = ' '.join(parts)
+      self.log_messages = []
 
   def on_entity_moved(self, event):
     level_state = self.gamestate.active_level_state
@@ -372,10 +396,10 @@ class GameScene(UIScene):
 
   def on_score_increased(self, event):
     self.stats_view.update()
-    self.log("You pick up some loose change.")
+    self.log("You picked up some loose change.")
 
   def on_door_open(self, event):
-    self.log("You open the door.")
+    self.log("You opened the door.")
 
   def on_entity_attacking(self, event):
     try:
@@ -391,9 +415,9 @@ class GameScene(UIScene):
       return
 
     if event.data.mode == EnumMonsterMode.STUNNED:
-      self.log("{} hits {}. It is stunned.".format(name1, name2))
+      self.log("{} hit {}. It is stunned.".format(name1, name2))
     else:
-      self.log("{} hits {}.".format(name1, name2))
+      self.log("{} hit {}.".format(name1, name2))
 
   def on_entity_died(self, event):
     try:
@@ -403,13 +427,15 @@ class GameScene(UIScene):
     if event.entity == self.gamestate.active_level_state.player:
       if DEBUG_PROFILE: pr.dump_stats('profile')
       self.director.push_scene(LoseScene(self.gamestate.active_level_state.score))
+    else:
+      self.log("{} died.".format(name))
 
   def on_entity_picked_up_item(self, event):
     if event.entity.is_player:
       self.log("You picked up a {}".format(event.data.item_type.id))
-    else:
+    elif self.gamestate.active_level_state.get_can_player_see(event.entity.position):
       name = ENTITY_NAME_BY_KIND[event.entity.monster_type.id].subject
-      self.log("{} picks up a {}".format(name, event.data.item_type.id))
+      self.log("{} picked up a {}".format(name, event.data.item_type.id))
     self.stats_view.update()
 
   def terminal_read(self, val):
@@ -436,7 +462,7 @@ class GameScene(UIScene):
       for keys, delta in KEYS_AND_DIRECTIONS:
         if val in keys:
           if level_state.action_close(level_state.player, level_state.player.position + delta):
-            self.log("You close the door.")
+            self.log("You closed the door.")
           else:
             self.log("There is no door there.")
           self.mode = EnumMode.DEFAULT
@@ -480,3 +506,5 @@ class GameScene(UIScene):
     super().terminal_update(is_active)
     self.gamestate.active_level_state.consume_events()
     if DEBUG_PROFILE: pr.disable()
+
+    self.update_log()
