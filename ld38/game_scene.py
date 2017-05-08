@@ -1,10 +1,3 @@
-import os
-import sys
-from pathlib import Path
-
-os.environ["PYGLET_SHADOW_WINDOW"] = "false"
-import pyglet
-
 from clubsandwich.draw import draw_line_vert
 from clubsandwich.blt.nice_terminal import terminal
 from clubsandwich.geom import Size, Point, Rect
@@ -16,6 +9,7 @@ from clubsandwich.ui import (
   WindowView,
 )
 
+from .music import NTrackPlayer
 from .logger import Logger
 from .scenes import PauseScene, WinScene, LoseScene
 from .views import ProgressBarView, GameView, StatsView
@@ -34,14 +28,7 @@ from .sentences import simple_declarative_sentence
 DEBUG_PROFILE = False
 
 
-root = Path(os.path.abspath(sys.argv[0])).parent
-pyglet.resource.path = [str(root / 'assets')]
-tracks = [
-  pyglet.resource.media('Q1.mp3'),
-  pyglet.resource.media('Q2.mp3'),
-  pyglet.resource.media('Q3.mp3'),
-  pyglet.resource.media('Q4.mp3'),
-]
+N_TRACK_PLAYER = NTrackPlayer(['Q1.mp3', 'Q2.mp3', 'Q3.mp3', 'Q4.mp3'])
 
 
 BINDINGS_BY_KEY = {}
@@ -92,22 +79,10 @@ if DEBUG_PROFILE:
   import cProfile
   pr = cProfile.Profile()
 
-
-players = [pyglet.media.Player() for _ in range(4)]
-for i, player in enumerate(players):
-  player.queue(tracks[i])
-  player.eos_action = player.EOS_LOOP
 class GameScene(UIScene):
   def __init__(self, *args, **kwargs):
-    self.player_volume_directions = ['up', 'down', 'down', 'down']
-
-    self.players = players
-    for i, player in enumerate(self.players):
-      player.seek(0)
-      if i == 0:
-        player.play()
-      else:
-        player.volume = 0
+    self.n_track_player = N_TRACK_PLAYER
+    self.n_track_player.reset()
 
     self.mode = EnumMode.DEFAULT
     self.gamestate = GameState()
@@ -145,9 +120,7 @@ class GameScene(UIScene):
   def exit(self):
     super().exit()
     self.ctx.clear()
-    for player in self.players:
-      player.pause()
-      player.seek(0)
+    self.n_track_player.stop()
     if DEBUG_PROFILE: pr.dump_stats('profile')
 
   def on_entity_moved(self, event):
@@ -157,7 +130,7 @@ class GameScene(UIScene):
       self.director.push_scene(WinScene(level_state.score))
 
     if cell.annotations & {'transition-1-2', 'transition-2-3', 'transition-3-4'}:
-      self.player_volume_directions = ['down', 'down', 'down', 'down']
+      self.n_track_player.set_active_track(None)
 
       ### HACK HACK HACK HACK ###
       # for "balance", replenish health between rooms
@@ -166,8 +139,7 @@ class GameScene(UIScene):
     
     room = level_state.tilemap.get_room(event.entity.position)
     if room and room.difficulty is not None:
-      self.player_volume_directions = ['down', 'down', 'down', 'down']
-      self.player_volume_directions[room.difficulty] = 'up'
+      self.n_track_player.set_active_track(room.difficulty)
 
   def on_entity_bumped(self, event):
     self.logger.log("Oof!")
@@ -288,18 +260,7 @@ class GameScene(UIScene):
 
   def terminal_update(self, is_active=True):
     if DEBUG_PROFILE: pr.enable()
-    for (i, direction, player) in zip(range(4), self.player_volume_directions, self.players):
-      if direction == 'down' and player.volume > 0:
-        player.volume = max(0, player.volume - 0.05)
-        if player.volume == 0:
-          player.pause()
-          player.seek(0)
-      elif direction == 'up' and player.volume < 1:
-        was_zero = player.volume == 0
-        player.volume = min(1, player.volume + 0.05)
-        if was_zero:
-          player.volume = 1
-          player.play()
+    self.n_track_player.step()
 
     super().terminal_update(is_active)
     self.gamestate.active_level_state.consume_events()

@@ -239,6 +239,7 @@ class LevelState:
     self._update_los_cache()
     return True
 
+  # TODO: log this event!
   def action_throw(self, entity, item, target_position, speed):
     path = list(entity.position.points_bresenham_to(target_position))
     while self.get_entity_at(path[0]) == entity:
@@ -246,7 +247,6 @@ class LevelState:
 
     if not self.get_can_move(entity, path[0]):
       return False
-
 
     entity_in_the_way = self.get_entity_at(path[0])
     if entity_in_the_way:
