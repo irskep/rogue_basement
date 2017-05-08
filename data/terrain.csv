@@ -1,0 +1,7 @@
+id,walkable,lightable
+EMPTY,false,false
+FLOOR,true,true
+WALL,false,false
+DOOR_CLOSED,false,false
+DOOR_OPEN,true,true
+CORRIDOR,true,true

@@ -4,12 +4,12 @@ from random import randrange, uniform
 from uuid import uuid4
 
 from .const import (
-  EnumTerrain,
   EnumFeature,
   EnumRoomShape,
   room_types,
   monster_types,
   item_types,
+  terrain_types,
 )
 
 from clubsandwich.geom import Rect, Point, Size
@@ -93,19 +93,22 @@ def generate_random_path(tilemap, rect1, rect2):
   for point in start.path_L_to(end):
     points_in_path.add(point)
     has_corridor_neighbor = False
+    # this "visual optimization" was a bad idea for reachability
+    """
     for neighbor in point.neighbors:
       if neighbor in points_in_path:
         continue
       try:
-        has_corridor_neighbor = tilemap.cell(neighbor).terrain == EnumTerrain.CORRIDOR
+        has_corridor_neighbor = tilemap.cell(neighbor).terrain == terrain_types.CORRIDOR
       except CellOutOfBoundsError:
         pass
       if has_corridor_neighbor:
         continue
+    """
     cell = tilemap.cell(point)
-    if cell.terrain == EnumTerrain.WALL:
+    if cell.terrain == terrain_types.WALL:
       doors.add(cell)
-    elif (cell.terrain == EnumTerrain.EMPTY or not cell.terrain) and not has_corridor_neighbor:
+    elif (cell.terrain == terrain_types.EMPTY or not cell.terrain) and not has_corridor_neighbor:
       corridors.add(cell)
   return (doors, corridors)
 
@@ -114,26 +117,26 @@ def engrave_rooms(tilemap, rooms):
   for room in rooms:
     tilemap.rooms_by_id[room.room_id] = room
     for corner in room.rect.points_corners:
-      tilemap.cell(corner).terrain = EnumTerrain.WALL
+      tilemap.cell(corner).terrain = terrain_types.WALL
     tilemap.cell(room.rect.origin).annotations.add('corner_top_left')
     tilemap.cell(room.rect.point_top_right).annotations.add('corner_top_right')
     tilemap.cell(room.rect.point_bottom_left).annotations.add('corner_bottom_left')
     tilemap.cell(room.rect.point_bottom_right).annotations.add('corner_bottom_right')
 
     for point in room.rect.points_top:
-      tilemap.cell(point).terrain = EnumTerrain.WALL
+      tilemap.cell(point).terrain = terrain_types.WALL
       tilemap.cell(point).annotations.add('horz')
     for point in room.rect.points_bottom:
-      tilemap.cell(point).terrain = EnumTerrain.WALL
+      tilemap.cell(point).terrain = terrain_types.WALL
       tilemap.cell(point).annotations.add('horz')
     for point in room.rect.points_left:
-      tilemap.cell(point).terrain = EnumTerrain.WALL
+      tilemap.cell(point).terrain = terrain_types.WALL
       tilemap.cell(point).annotations.add('vert')
     for point in room.rect.points_right:
-      tilemap.cell(point).terrain = EnumTerrain.WALL
+      tilemap.cell(point).terrain = terrain_types.WALL
       tilemap.cell(point).annotations.add('vert')
     for point in room.rect.with_inset(1).points:
-      tilemap.cell(point).terrain = EnumTerrain.FLOOR
+      tilemap.cell(point).terrain = terrain_types.FLOOR
 
     for point in room.rect.points:
       tilemap.assign_room(point, room.room_id)
@@ -184,9 +187,9 @@ def engrave_corridor_between_rooms(tilemap, a, b, annotation=None):
       a.rect.with_inset(1),
       b.rect.with_inset(1))
   for door in doors:
-    door.terrain = EnumTerrain.DOOR_OPEN if DEBUG_ALL_DOORS_OPEN else EnumTerrain.DOOR_CLOSED
+    door.terrain = terrain_types.DOOR_OPEN if DEBUG_ALL_DOORS_OPEN else terrain_types.DOOR_CLOSED
   for corridor in corridors:
-    corridor.terrain = EnumTerrain.CORRIDOR
+    corridor.terrain = terrain_types.CORRIDOR
     if annotation:
       corridor.annotations.add(annotation)
 

@@ -1,6 +1,6 @@
 from math import floor
 
-from .const import EnumTerrain, EnumFeature, EnumMonsterMode
+from .const import terrain_types, EnumFeature, EnumMonsterMode
 
 from clubsandwich.blt.nice_terminal import terminal
 from clubsandwich.draw import LINE_STYLES
@@ -77,10 +77,10 @@ def get_char_and_color(level_state, entity_cache, cell):
 
   char = ' '
   color = C_DEFAULT
-  if cell.terrain == EnumTerrain.FLOOR:
+  if cell.terrain == terrain_types.FLOOR:
     char = '.'
     color = level_state.tilemap.get_room(cell.point).room_type.color
-  if cell.terrain == EnumTerrain.WALL:
+  if cell.terrain == terrain_types.WALL:
     if 'horz' in cell.annotations:
       char = line_chars['T']
     if 'vert' in cell.annotations:
@@ -94,11 +94,11 @@ def get_char_and_color(level_state, entity_cache, cell):
     if 'corner_bottom_right' in cell.annotations:
       char = line_chars['BR']
     color = level_state.tilemap.get_room(cell.point).room_type.color
-  if cell.terrain == EnumTerrain.DOOR_CLOSED:
+  if cell.terrain == terrain_types.DOOR_CLOSED:
     char = '+'
-  if cell.terrain == EnumTerrain.DOOR_OPEN:
+  if cell.terrain == terrain_types.DOOR_OPEN:
     char = "'"
-  if cell.terrain == EnumTerrain.CORRIDOR:
+  if cell.terrain == terrain_types.CORRIDOR:
     color = C_FLOOR
     char = "#"
 

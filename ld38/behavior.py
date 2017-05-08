@@ -10,7 +10,6 @@ from clubsandwich.tilemap import TileMap
 from .level_generator import generate_dungeon
 from .const import (
   EnumEventNames,
-  EnumTerrain,
   EnumMonsterMode,
 )
 from .entity import Item

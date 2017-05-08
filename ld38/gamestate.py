@@ -14,7 +14,7 @@ from .behavior import (
 from .level_generator import generate_dungeon
 from .const import (
   EnumEventNames,
-  EnumTerrain,
+  terrain_types,
   monster_types,
   item_types,
 )
@@ -23,14 +23,11 @@ from .const import (
 LEVEL_SIZE = Size(100, 60)
 
 
-def get_is_terrain_passable(terrain):
-  return terrain in (EnumTerrain.FLOOR, EnumTerrain.CORRIDOR, EnumTerrain.DOOR_OPEN)
-
-
 class RogueBasementCell(Cell):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     self.room_id = None
+    self.terrain = terrain_types.EMPTY
 
 
 class RogueBasementTileMap(TileMap):
@@ -186,7 +183,7 @@ class LevelState:
 
   def get_is_terrain_passable(self, point):
     try:
-      return get_is_terrain_passable(self.tilemap.cell(point).terrain)
+      return self.tilemap.cell(point).terrain.walkable
     except CellOutOfBoundsError:
       return False
 
@@ -204,12 +201,12 @@ class LevelState:
       cell = self.tilemap.cell(position)
     except CellOutOfBoundsError:
       return False
-    return get_is_terrain_passable(cell.terrain)
+    return cell.terrain.walkable
 
   def get_can_see(self, position):
     try:
       cell = self.tilemap.cell(position)
-      return get_is_terrain_passable(cell.terrain)
+      return cell.terrain.lightable
     except CellOutOfBoundsError:
       return False
 
@@ -232,9 +229,9 @@ class LevelState:
       cell = self.tilemap.cell(position)
     except CellOutOfBoundsError:
       return False
-    if cell.terrain != EnumTerrain.DOOR_OPEN:
+    if cell.terrain != terrain_types.DOOR_OPEN:
       return False
-    cell.terrain = EnumTerrain.DOOR_CLOSED
+    cell.terrain = terrain_types.DOOR_CLOSED
     self._fire_player_took_action_if_alive(position)
     self._update_los_cache()
     return True
@@ -284,7 +281,7 @@ class LevelState:
       self._fire_player_took_action_if_alive(position)
       self._update_los_cache()
       return True
-    elif cell.terrain == EnumTerrain.DOOR_CLOSED and self.get_can_open_door(entity):
+    elif cell.terrain == terrain_types.DOOR_CLOSED and self.get_can_open_door(entity):
       self.open_door(entity, position)
       self._fire_player_took_action_if_alive(position)
       self._update_los_cache()
@@ -313,7 +310,7 @@ class LevelState:
       self.entity_by_position[position] = entity
       self.fire(EnumEventNames.entity_moved, data=entity, entity=entity)
       return True
-    elif cell.terrain == EnumTerrain.DOOR_CLOSED and self.get_can_open_door(entity):
+    elif cell.terrain == terrain_types.DOOR_CLOSED and self.get_can_open_door(entity):
       self.open_door(entity, position)
       return True
     else:
@@ -364,7 +361,7 @@ class LevelState:
   def open_door(self, entity, position):
     # this is where the logic goes for doors that are hard to open.
     cell = self.tilemap.cell(position)
-    cell.terrain = EnumTerrain.DOOR_OPEN
+    cell.terrain = terrain_types.DOOR_OPEN
     self.fire(EnumEventNames.door_open, data=cell, entity=entity)
 
   def action_die(self):

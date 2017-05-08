@@ -59,6 +59,11 @@ def _color(val):
     val = '0' + val
   return '#' + val
 
+def _float_list(str_list):
+  return [float(s) for s in str_list]
+
+def _key_list(str_list):
+  return [getattr(terminal, 'TK_' + s.strip()) for s in str_list]
 
 ITEM_RE = re.compile(r'(.*)x(\d+)')
 def _items(val):
@@ -79,16 +84,6 @@ class EnumUppercaseWithLookup(Enum):
   @classmethod
   def lookup(cls, k):
     return getattr(cls, k.upper())
-
-
-@unique
-class EnumTerrain(EnumUppercaseWithLookup):
-  EMPTY = 0
-  FLOOR = 1
-  WALL = 2
-  DOOR_CLOSED = 3
-  DOOR_OPEN = 4
-  CORRIDOR = 5
 
 
 @unique
@@ -140,20 +135,23 @@ class EnumEventNames(EnumUppercaseWithLookup):
 
 ### CSVs ###
 
+terrain_types = DataStore('TerrainType', (
+  ('id', str),
+  ('walkable', _bool),
+  ('lightable', _bool),
+))
 
 entity_names = DataStore('EntityName', (
   ('id', _upper),
   ('name', str),
   ('is_second_person', _bool),
 ))
-entity_names.add_source(CSVReader(str(root / 'data' / 'names.csv')))
 
 verbs = DataStore('Verb', (
   ('id', str),
   ('present_2p', str),
   ('present_3p', str),
 ))
-verbs.add_source(CSVReader(str(root / 'data' / 'verbs.csv')))
 
 room_types = DataStore('RoomType', (
   ('id', str),
@@ -165,7 +163,6 @@ room_types = DataStore('RoomType', (
   ('monster_density', float),
   ('item_density', float),
 ))
-room_types.add_source(CSVReader(str(root / 'data' / 'rooms.csv')))
 
 monster_types = DataStore('MonsterType', (
   ('id', _upper),
@@ -178,10 +175,6 @@ monster_types = DataStore('MonsterType', (
   ('strength', _int),
   ('items', _items),
 ))
-monster_types.add_source(CSVReader(str(root / 'data' / 'monsters.csv')))
-
-def _float_list(str_list):
-  return [float(s) for s in str_list]
 
 item_types = DataStore('ItemType', (
   ('id', str),
@@ -194,10 +187,7 @@ class ItemTypeReader(CSVReader):
   def read(self):
     for line in super().read():
       yield line[:3] + [line[3:]]
-item_types.add_source(ItemTypeReader(str(root / 'data' / 'items.csv')))
 
-def _key_list(str_list):
-  return [getattr(terminal, 'TK_' + s.strip()) for s in str_list]
 key_bindings = DataStore('KeyBinding', (
   ('id', str),
   ('keys', _key_list)
@@ -207,8 +197,26 @@ class KeyBindingsReader(CSVReader):
   def read(self):
     for line in super().read():
       yield [line[0], line[1:]]
-key_bindings.add_source(KeyBindingsReader(
-  str(root / 'data' / 'key_bindings.csv'), skip_first_line=False))
+
+
+def reload():
+  terrain_types.unload()
+  entity_names.unload()
+  verbs.unload()
+  room_types.unload()
+  monster_types.unload()
+  item_types.unload()
+  key_bindings.unload()
+
+  terrain_types.add_source(CSVReader(str(root / 'data' / 'terrain.csv')))
+  entity_names.add_source(CSVReader(str(root / 'data' / 'names.csv')))
+  verbs.add_source(CSVReader(str(root / 'data' / 'verbs.csv')))
+  room_types.add_source(CSVReader(str(root / 'data' / 'rooms.csv')))
+  monster_types.add_source(CSVReader(str(root / 'data' / 'monsters.csv')))
+  item_types.add_source(ItemTypeReader(str(root / 'data' / 'items.csv')))
+  key_bindings.add_source(KeyBindingsReader(
+    str(root / 'data' / 'key_bindings.csv'), skip_first_line=False))
+reload()
 
 
 ### assorted code constants ###
