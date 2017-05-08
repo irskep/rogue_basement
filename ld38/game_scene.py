@@ -1,9 +1,5 @@
-#!/usr/bin/env python
 import os
 import sys
-from collections import defaultdict
-from enum import Enum
-from math import floor
 from pathlib import Path
 
 os.environ["PYGLET_SHADOW_WINDOW"] = "false"
@@ -20,6 +16,7 @@ from clubsandwich.ui import (
   WindowView,
 )
 
+from .scenes import PauseScene, WinScene, LoseScene
 from .views import ProgressBarView, GameView, StatsView
 from .draw_game import draw_game
 from .gamestate import GameState
@@ -90,101 +87,9 @@ Close: c
 """.strip()
 
 
-TEXT_GAME_OVER = """
-      __.      
-    _/ / \\
-   /   \\  *      ______________________________________
-──/─────\\──     / Ah, well... another body to feed the \\
-  \\ - - /    ──/  mutated skunks...                    |
-&  \\ - /  &    \\_______________________________________/ 
- \\───+───/
-     |
-\\────|────/
-_\\       /_
-"""[1:].rstrip()
-
-
-TEXT_YOU_WIN = """
-      __.      
-    _/ / \\
-   /   \\  *      _______________________________________
-──/─────\\──     / Oh, thank you so much! You might want \\
-  \\ - - /    ──/  to talk to my neighbor, he's also in  |
-&  \\ - /  &    |  the Netherwizard Club...             / 
- \\───+───/     \\______________________________________/ 
-     |
-\\────|────/
-_\\       /_
-"""[1:].rstrip()
-
-
 if DEBUG_PROFILE:
   import cProfile
   pr = cProfile.Profile()
-
-
-class PauseScene(UIScene):
-  def __init__(self, *args, **kwargs):
-    view = WindowView(
-      'Pause',
-      layout_options=LayoutOptions.centered(40, 10),
-      subviews=[
-          ButtonView(
-              text='Resume', callback=self.resume,
-              layout_options=LayoutOptions.row_top(5)),
-          ButtonView(
-              text='Quit', callback=self.quit,
-              layout_options=LayoutOptions.row_bottom(5)),
-      ])
-    super().__init__(view, *args, **kwargs)
-    self.covers_screen = False
-
-  def resume(self):
-    self.director.pop_scene()
-
-  def quit(self):
-    self.director.pop_to_first_scene()
-
-
-class LoseScene(UIScene):
-  def __init__(self, score, *args, **kwargs):
-    view = WindowView(
-      'Game Over',
-      layout_options=LayoutOptions.centered(80, 30),
-      subviews=[
-          LabelView(TEXT_GAME_OVER, layout_options=LayoutOptions.centered('intrinsic', 'intrinsic')),
-          LabelView("Your score: {}".format(score),
-            layout_options=LayoutOptions.row_bottom(1).with_updates(bottom=6)),
-          ButtonView(
-              text='Aaauuuuggghhhhhh...', callback=self.done,
-              layout_options=LayoutOptions.row_bottom(3)),
-      ])
-    super().__init__(view, *args, **kwargs)
-    self.covers_screen = False
-
-  def done(self):
-    self.director.pop_to_first_scene()
-
-
-class WinScene(UIScene):
-  def __init__(self, score, *args, **kwargs):
-    view = WindowView(
-      'You win!',
-      layout_options=LayoutOptions.centered(80, 30),
-      subviews=[
-          LabelView(TEXT_YOU_WIN, layout_options=LayoutOptions.centered('intrinsic', 'intrinsic')),
-          LabelView("Your score: {}".format(score),
-            layout_options=LayoutOptions.row_bottom(1).with_updates(bottom=6)),
-          ButtonView(
-              text='Thanks!', callback=self.done,
-              layout_options=LayoutOptions.row_bottom(3)),
-      ])
-    super().__init__(view, *args, **kwargs)
-    self.covers_screen = False
-
-  def done(self):
-    self.director.pop_to_first_scene()
-
 
 
 players = [pyglet.media.Player() for _ in range(4)]
