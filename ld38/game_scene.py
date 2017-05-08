@@ -16,6 +16,7 @@ from clubsandwich.ui import (
   WindowView,
 )
 
+from .logger import Logger
 from .scenes import PauseScene, WinScene, LoseScene
 from .views import ProgressBarView, GameView, StatsView
 from .draw_game import draw_game
@@ -108,11 +109,9 @@ class GameScene(UIScene):
       else:
         player.volume = 0
 
-    self.log_messages = []
-
-    self._mode = EnumMode.DEFAULT
+    self.mode = EnumMode.DEFAULT
     self.gamestate = GameState()
-    self.log_view = LabelView(
+    log_view = LabelView(
       text="", align_horz='left', color_bg='#333333', clear=True,
       layout_options=LayoutOptions.row_bottom(1).with_updates(left=SIDEBAR_WIDTH))
     self.stats_view = StatsView(self.gamestate, layout_options=LayoutOptions.column_left(SIDEBAR_WIDTH))
@@ -123,9 +122,11 @@ class GameScene(UIScene):
       GameView(self.gamestate, layout_options=LayoutOptions().with_updates(left=SIDEBAR_WIDTH, bottom=1)),
       self.stats_view,
       help_view,
-      self.log_view,
+      log_view,
     ]
     super().__init__(views, *args, **kwargs)
+
+    self.logger = Logger(log_view)
 
     level_state = self.gamestate.active_level_state
     level_state.dispatcher.add_subscriber(self, EnumEventNames.door_open, level_state.player)
@@ -149,51 +150,9 @@ class GameScene(UIScene):
       player.seek(0)
     if DEBUG_PROFILE: pr.dump_stats('profile')
 
-  @property
-  def mode(self):
-    return self._mode
-
-  @mode.setter
-  def mode(self, mode):
-    self._mode = mode
-    if mode == EnumMode.DEFAULT:
-      pass
-    elif mode == EnumMode.CLOSE:
-      self.log_view.text = "Close what? (Pick a direction)"
-    elif mode == EnumMode.THROW:
-      self.log_view.text = "Throw where? (Pick a direction)"
-
-  def log(self, text):
-    if text.strip():
-      print(text)
-    self.log_messages.append(text)
-
-  def update_log(self):
-    if self.log_messages:
-      parts = []
-      last_message = self.log_messages[0]
-      dupe_count = 1
-      for m in self.log_messages[1:]:
-        if m == last_message:
-          dupe_count += 1
-        else:
-          if dupe_count > 1:
-            parts.append('{} (x{})'.format(last_message, dupe_count))
-          else:
-            parts.append(last_message)
-          dupe_count = 1
-          last_message = m
-      if dupe_count > 1:
-        parts.append('{} (x{})'.format(last_message, dupe_count))
-      else:
-        parts.append(last_message)
-      self.log_view.text = ' '.join(parts)
-      self.log_messages = []
-
   def on_entity_moved(self, event):
     level_state = self.gamestate.active_level_state
     cell = level_state.tilemap.cell(event.entity.position)
-    self.log_view.text = ""
     if cell.feature == EnumFeature.STAIRS_DOWN:
       self.director.push_scene(WinScene(level_state.score))
 
@@ -211,29 +170,29 @@ class GameScene(UIScene):
       self.player_volume_directions[room.difficulty] = 'up'
 
   def on_entity_bumped(self, event):
-    self.log("Oof!")
+    self.logger.log("Oof!")
 
   def on_entity_took_damage(self, event):
     self.stats_view.update()
 
   def on_score_increased(self, event):
     self.stats_view.update()
-    self.log(simple_declarative_sentence('PLAYER', verbs.PICKUP, 'GOLD', 'a'))
+    self.logger.log(simple_declarative_sentence('PLAYER', verbs.PICKUP, 'GOLD', 'a'))
 
   def on_door_open(self, event):
-    self.log("You opened the door.")
+    self.logger.log("You opened the door.")
 
   def on_entity_attacking(self, event):
-    self.log(simple_declarative_sentence(
+    self.logger.log(simple_declarative_sentence(
       event.entity.monster_type.id, verbs.HIT, event.data.monster_type.id))
 
     if event.data.mode == EnumMonsterMode.STUNNED:
       # fortunately this only happens to monsters, otherwise we'd have to
       # account for it.
-      self.log("It is stunned.")
+      self.logger.log("It is stunned.")
 
   def on_entity_died(self, event):
-    self.log(simple_declarative_sentence(
+    self.logger.log(simple_declarative_sentence(
       event.entity.monster_type.id, verb=verbs.DIE))
 
     if event.entity == self.gamestate.active_level_state.player:
@@ -242,7 +201,7 @@ class GameScene(UIScene):
 
   def on_entity_picked_up_item(self, event):
     if self.gamestate.active_level_state.get_can_player_see(event.entity.position):
-      self.log(simple_declarative_sentence(
+      self.logger.log(simple_declarative_sentence(
         event.entity.monster_type.id,
         verbs.PICKUP,
         event.data.item_type.id,
@@ -258,8 +217,8 @@ class GameScene(UIScene):
 
     key = BINDINGS_BY_KEY[val]
 
-    self.log(' ')
-    self.update_log()
+    self.logger.log(' ')
+    self.logger.update_log()
     
     if self.mode == EnumMode.DEFAULT:
       self.handle_key_default(key)
@@ -274,15 +233,15 @@ class GameScene(UIScene):
       level_state.fire(KEYS_TO_EVENTS[k])
 
     if k == 'CLOSE':
-      self.log("Close door in what direction?")
+      self.logger.log("Close door in what direction?")
       self.mode = EnumMode.CLOSE
 
     if k == 'THROW':
       if level_state.player.inventory:
         self.mode = EnumMode.THROW
-        self.log("Throw in what direction?")
+        self.logger.log("Throw in what direction?")
       else:
-        self.log("You don't have anything to throw.")
+        self.logger.log("You don't have anything to throw.")
 
     if k == 'CANCEL':
       self.director.push_scene(PauseScene())
@@ -294,15 +253,15 @@ class GameScene(UIScene):
       return
 
     if k not in KEYS_TO_DIRECTIONS:
-      self.log("Invalid direction")
+      self.logger.log("Invalid direction")
       self.mode = EnumMode.DEFAULT
       return
 
     delta = KEYS_TO_DIRECTIONS[k]
     if level_state.action_close(level_state.player, level_state.player.position + delta):
-      self.log("You closed the door.")
+      self.logger.log("You closed the door.")
     else:
-      self.log("There is no door there.")
+      self.logger.log("There is no door there.")
     self.mode = EnumMode.DEFAULT
 
   def handle_key_throw(self, k):
@@ -312,7 +271,7 @@ class GameScene(UIScene):
       return
 
     if k not in KEYS_TO_DIRECTIONS:
-      self.log("Invalid direction")
+      self.logger.log("Invalid direction")
       self.mode = EnumMode.DEFAULT
       return
 
@@ -322,9 +281,9 @@ class GameScene(UIScene):
     did_throw = level_state.action_throw(
       level_state.player, item, level_state.player.position + delta * 1000, 2)
     if did_throw:
-      self.log("You throw the {}".format(item.item_type.id))
+      self.logger.log(simple_declarative_sentence('PLAYER', verbs.THROW, 'ROCK'))
     else:
-      self.log("You can't throw that in that direction.")
+      self.logger.log("You can't throw that in that direction.")
     self.mode = EnumMode.DEFAULT
 
   def terminal_update(self, is_active=True):
@@ -346,4 +305,4 @@ class GameScene(UIScene):
     self.gamestate.active_level_state.consume_events()
     if DEBUG_PROFILE: pr.disable()
 
-    self.update_log()
+    self.logger.update_log()
