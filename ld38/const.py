@@ -8,6 +8,7 @@ from pathlib import Path
 from enum import Enum, unique
 
 from clubsandwich.blt.nice_terminal import terminal
+from clubsandwich.datastore import DataStore, CSVReader
 
 
 root = Path(os.path.abspath(sys.argv[0])).parent
@@ -21,11 +22,41 @@ def csv_iterator(filename):
         continue
       yield line
 
+def _bool(val):
+  return val.lower() in ('1', 'yes', 'true')
 
 def _int(val):
+  """
+  Parse string as an int, even if it has decimals. This works around some
+  dumb scim editor behavior.
+  """
   return floor(float(val))
 
+def _enum_value(TheEnum):
+  def _specific_enum_value(val):
+    try:
+      return TheEnum[val]
+    except KeyError:
+      raise ValueError("Invalid value for enum {!r}: {!r}".format(TheEnum, val))
+  return _specific_enum_value
+
+def _int_or_star(val):
+  return None if val == '*' else _int(val)
+
+def _pipe_separated_uppercase(val):
+  return None if val == '*' else set(s.upper() for s in val.split('|'))
+
+def _pipe_separated(val):
+  return val.split('|')
+
+def _upper(val):
+  return val.upper()
+
 def _color(val):
+  """
+  Parse string as hex color string. scim does some dumb things like truncate,
+  convert to float, and remove #, so fix all that crap.
+  """
   if val.startswith('#'):
     return val  # already ok
   if val.endswith('.00'):
@@ -132,56 +163,57 @@ KEYS_CANCEL = (terminal.TK_ESCAPE,)
 KEYS_GET = (terminal.TK_G,)
 KEYS_THROW = (terminal.TK_T,)
 
-ENTITY_NAME_BY_KIND = {}
+entity_names = DataStore('EntityName', (
+  ('id', _upper),
+  ('name', str),
+  ('is_second_person', _bool),
+))
+entity_names.add_source(CSVReader(str(root / 'data' / 'names.csv')))
 
-EntityName = namedtuple(
-  'EntityName', ['subject', 'object', 'death_verb_active'])
-for line in csv_iterator('names.csv'):
-  ENTITY_NAME_BY_KIND[line[0].upper()] = EntityName(*line[1:])
+verbs = DataStore('Verb', (
+  ('id', str),
+  ('present_2p', str),
+  ('present_3p', str),
+))
+verbs.add_source(CSVReader(str(root / 'data' / 'verbs.csv')))
 
+room_types = DataStore('RoomType', (
+  ('id', str),
+  ('shape', _enum_value(EnumRoomShape)),
+  ('difficulty', _int_or_star),
+  ('monsters', _pipe_separated_uppercase),
+  ('chance', float),
+  ('color', _color),
+  ('monster_density', float),
+  ('item_density', float),
+))
+room_types.add_source(CSVReader(str(root / 'data' / 'rooms.csv')))
 
-RoomType = namedtuple(
-  'RoomType', ['shape', 'difficulty', 'monsters', 'chance', 'color', 'monster_density', 'item_density'])
-ROOM_TYPES = []
+monster_types = DataStore('MonsterType', (
+  ('id', _upper),
+  ('char', str),
+  ('color', _color),
+  ('difficulty', _int),
+  ('chance', float),
+  ('behaviors', _pipe_separated),
+  ('hp_max', _int),
+  ('strength', _int),
+  ('items', _items),
+))
+monster_types.add_source(CSVReader(str(root / 'data' / 'monsters.csv')))
 
-for line in csv_iterator('rooms.csv'):
-  ROOM_TYPES.append(RoomType(
-    shape=EnumRoomShape.lookup(line[0]),
-    difficulty=None if line[1] == '*' else _int(line[1]),
-    monsters=None if line[2] == '*' else set(s.upper() for s in line[2].split('|')),
-    chance=float(line[3]),
-    color=_color(line[4]),
-    monster_density=float(line[5]),
-    item_density=float(line[6]),
-  ))
-  
+def _float_list(str_list):
+  return [float(s) for s in str_list]
 
-MonsterType = namedtuple('MonsterType', [
-  'id', 'char', 'color', 'difficulty', 'chance', 'behaviors', 'hp_max', 'strength', 'items'])
-MONSTER_TYPES_BY_ID = {}
-for line in csv_iterator('monsters.csv'):
-  MONSTER_TYPES_BY_ID[line[0].upper()] = MonsterType(
-    id=line[0].upper(),
-    char=line[1],
-    color=_color(line[2]),
-    difficulty=_int(line[3]),
-    chance=float(line[4]),
-    behaviors=line[5].split('|'),
-    hp_max=_int(line[6]),
-    strength=_int(line[7]),
-    items=_items(line[8])
-  )
-
-ItemType = namedtuple('ItemType', [
-  'id', 'char', 'color', 'effect', 'uses_min', 'uses_max', 'chance_by_difficulty'])
-ITEM_TYPES_BY_ID = {}
-for line in csv_iterator('items.csv'):
-  ITEM_TYPES_BY_ID[line[0].upper()] = ItemType(
-    id=line[0].upper(),
-    char=line[1],
-    color=_color(line[2]),
-    uses_min=_int(line[3]),
-    uses_max=_int(line[4]),
-    effect=line[5],
-    chance_by_difficulty=[float(val) for val in line[6:10]]
-  )
+item_types = DataStore('ItemType', (
+  ('id', str),
+  ('char', str),
+  ('color', _color),
+  ('chance_by_difficulty', _float_list),
+))
+class ItemTypeReader(CSVReader):
+  """Combines cols 6-10 into a list"""
+  def read(self):
+    for line in super().read():
+      yield line[:3] + [line[3:]]
+item_types.add_source(ItemTypeReader(str(root / 'data' / 'items.csv')))

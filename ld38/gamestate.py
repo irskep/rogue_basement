@@ -15,8 +15,8 @@ from .level_generator import generate_dungeon
 from .const import (
   EnumEventNames,
   EnumTerrain,
-  MONSTER_TYPES_BY_ID,
-  ITEM_TYPES_BY_ID,
+  monster_types,
+  item_types,
 )
 
 
@@ -74,7 +74,7 @@ class LevelState:
 
     self.player = None
     self.player = self.create_entity(
-      MONSTER_TYPES_BY_ID['PLAYER'],
+      monster_types.PLAYER,
       self.tilemap.points_of_interest['stairs_up'])
 
     for item_data in self.tilemap.points_of_interest['items']:
@@ -108,7 +108,7 @@ class LevelState:
     entity.behavior_state = behavior_state or {}
 
     for it_id in entity.monster_type.items:
-      entity.inventory.append(Item(ITEM_TYPES_BY_ID[it_id]))
+      entity.inventory.append(Item(item_types[it_id]))
 
     if len(mt.behaviors) == 1:
       entity.add_behavior(BEHAVIORS_BY_ID[mt.behaviors[0]](entity, self))
@@ -254,7 +254,7 @@ class LevelState:
 
     entity.inventory.remove(item)
     mk_id = item.item_type.id + '_IN_FLIGHT'
-    rock_in_flight = self.create_entity(MONSTER_TYPES_BY_ID[mk_id], path[0], {
+    rock_in_flight = self.create_entity(monster_types[mk_id], path[0], {
       'path': [None] + path[1:],  # behavior executes immediately but rock is already placed
       'speed': speed,
     })
@@ -343,7 +343,7 @@ class LevelState:
     # HACK: count score during pickup
     golds = [item for item in items if item.item_type.id == 'GOLD']
 
-    if entity == self.player:
+    if entity == self.player and golds:
       self.score += len(golds)
       self.fire(EnumEventNames.score_increased, data=None, entity=None)
 

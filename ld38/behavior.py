@@ -12,8 +12,6 @@ from .const import (
   EnumEventNames,
   EnumTerrain,
   EnumMonsterMode,
-  ITEM_TYPES_BY_ID,
-  MONSTER_TYPES_BY_ID,
 )
 from .entity import Item
 

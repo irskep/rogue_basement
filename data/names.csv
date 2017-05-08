@@ -1,13 +1,13 @@
-id,subject,object,die verb
-player,You,you,die
-verp_1,The measly verp,the measly verp,dies
-verp_2,The average verp,the average verp,dies
-verp_3,The beefy verp,the beefy verp,dies
-verp_4,The terrifying verp,the terrifying verp,dies
-mage_wind,The wind mage,the wind mage,dies
-mage_ice,The ice mage,the ice mage,dies
-wibble,The wibble,the wibble,dies
-wibble_2,The burly wibble,the burly wibble,dies
-wibble_3,The beefy wibble,the beefy wibble,dies
-wibble_4,The lumbering wibble,the lumbering wibble,dies
-rock_in_flight,The rock,the rock,dies
+id,name,is second person
+player,you,true
+verp_1,measly verp,false
+verp_2,average verp,false
+verp_3,beefy verp,false
+verp_4,terrifying verp,false
+wibble,wibble,false
+wibble_2,burly wibble,false
+wibble_3,beefy wibble,false
+wibble_4,lumbering wibble,false
+rock_in_flight,rock,false
+rock,rock,false
+gold,coin,false

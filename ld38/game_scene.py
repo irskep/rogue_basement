@@ -27,7 +27,7 @@ from .const import (
   EnumMode,
   EnumFeature,
   EnumMonsterMode,
-  ENTITY_NAME_BY_KIND,
+  verbs,
   KEYS_U, KEYS_D, KEYS_L, KEYS_R, KEYS_UL, KEYS_UR, KEYS_DL, KEYS_DR,
   KEYS_WAIT,
   KEYS_CLOSE,
@@ -35,6 +35,7 @@ from .const import (
   KEYS_GET,
   KEYS_THROW,
 )
+from .sentences import simple_declarative_sentence
 
 DEBUG_PROFILE = False
 
@@ -398,46 +399,36 @@ class GameScene(UIScene):
 
   def on_score_increased(self, event):
     self.stats_view.update()
-    self.log("You picked up some loose change.")
+    self.log(simple_declarative_sentence('PLAYER', verbs.PICKUP, 'GOLD', 'a'))
 
   def on_door_open(self, event):
     self.log("You opened the door.")
 
   def on_entity_attacking(self, event):
-    try:
-      name1 = ENTITY_NAME_BY_KIND[event.entity.monster_type.id].subject
-    except KeyError:
-      print("Missing log message for", event.entity.monster_type.id)
-      return
-
-    try:
-      name2 = ENTITY_NAME_BY_KIND[event.data.monster_type.id].object
-    except KeyError:
-      print("Missing log message for", event.data.monster_type.id)
-      return
+    self.log(simple_declarative_sentence(
+      event.entity.monster_type.id, verbs.HIT, event.data.monster_type.id))
 
     if event.data.mode == EnumMonsterMode.STUNNED:
-      self.log("{} hit {}. It is stunned.".format(name1, name2))
-    else:
-      self.log("{} hit {}.".format(name1, name2))
+      # fortunately this only happens to monsters, otherwise we'd have to
+      # account for it.
+      self.log("It is stunned.")
 
   def on_entity_died(self, event):
-    try:
-      name = ENTITY_NAME_BY_KIND[event.entity.monster_type.id].subject
-    except KeyError:
-      print("Missing log message for", event.entity.monster_type.id)
+    self.log(simple_declarative_sentence(
+      event.entity.monster_type.id, verb=verbs.DIE))
+
     if event.entity == self.gamestate.active_level_state.player:
       if DEBUG_PROFILE: pr.dump_stats('profile')
       self.director.push_scene(LoseScene(self.gamestate.active_level_state.score))
-    else:
-      self.log("{} died.".format(name))
 
   def on_entity_picked_up_item(self, event):
-    if event.entity.is_player:
-      self.log("You picked up a {}".format(event.data.item_type.id))
-    elif self.gamestate.active_level_state.get_can_player_see(event.entity.position):
-      name = ENTITY_NAME_BY_KIND[event.entity.monster_type.id].subject
-      self.log("{} picked up a {}".format(name, event.data.item_type.id))
+    if self.gamestate.active_level_state.get_can_player_see(event.entity.position):
+      self.log(simple_declarative_sentence(
+        event.entity.monster_type.id,
+        verbs.PICKUP,
+        event.data.item_type.id,
+        'a'
+      ))
     self.stats_view.update()
 
   def terminal_read(self, val):

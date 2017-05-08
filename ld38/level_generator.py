@@ -7,9 +7,9 @@ from .const import (
   EnumTerrain,
   EnumFeature,
   EnumRoomShape,
-  ROOM_TYPES,
-  MONSTER_TYPES_BY_ID,
-  ITEM_TYPES_BY_ID,
+  room_types,
+  monster_types,
+  item_types,
 )
 
 from clubsandwich.geom import Rect, Point, Size
@@ -59,8 +59,11 @@ def generate_room(bsp_leaf, difficulty_map):
   """Decorate ``bsp_leaf`` with a :py:class:`Room` object"""
   difficulty = _get_difficulty(bsp_leaf, difficulty_map)
 
+  assert(bsp_leaf.rect)
+
   room_type_options = [
-    rt for rt in ROOM_TYPES if rt.difficulty is None or rt.difficulty == difficulty]
+    rt for rt in room_types.items
+    if rt.difficulty is None or rt.difficulty == difficulty]
 
   bsp_leaf.data['room'] = Room(
     bsp_leaf.rect,
@@ -230,8 +233,9 @@ def place_monsters(tilemap):
   tilemap.points_of_interest['monsters'] = monster_datas 
   for room in tilemap.rooms_by_id.values():
     rt = room.room_type
-    possible_monsters = list(MONSTER_TYPES_BY_ID.values()) if rt.monsters is None else [
-      MONSTER_TYPES_BY_ID[mt_k] for mt_k in room.room_type.monsters]
+    possible_monsters = (
+      list(monster_types.items) if rt.monsters is None
+      else [monster_types[mt_k] for mt_k in room.room_type.monsters])
     allowed_monster_types = [
       mt for mt in possible_monsters
       if mt.difficulty is None or mt.difficulty == room.difficulty]
@@ -267,10 +271,12 @@ def place_items(tilemap):
     ### HACK: spawn exactly one gold in each room ###
     for i in range(num_items + 1):
       point = inner_rect.get_random_point()
-      it = weighted_choice([(it, it.chance_by_difficulty[room.difficulty]) for it in ITEM_TYPES_BY_ID.values()])
+      it = weighted_choice([
+        (it, it.chance_by_difficulty[room.difficulty])
+        for it in item_types.items])
 
       if i == 0:
-        it = ITEM_TYPES_BY_ID['GOLD']
+        it = item_types.GOLD
 
       i = 0
       while not get_can_add_item_at_point(tilemap, point) and i < 10:

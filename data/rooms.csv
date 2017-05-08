@@ -1,6 +1,6 @@
-Shape,Difficulty,Monsters,Chance,Color,Monster density,Item density
-box_random,0.00,*,1.00,666666.00,5.00,5.00
-box_random,1.00,*,1.00,886666.00,5.00,4.00
-box_random,2.00,*,1.00,668866.00,5.00,3.00
-box_random,3.00,*,1.00,886688.00,5.00,2.00
-box_full,*,verp_1|verp_2|verp_3|verp_4,0.20,6666ff,2.00,4.00
+id,Shape,Difficulty,Monsters,Chance,Color,Monster density,Item density
+BASIC_1,BOX_RANDOM,0.00,*,1.00,666666.00,5.00,5.00
+BASIC_2,BOX_RANDOM,1.00,*,1.00,886666.00,5.00,4.00
+BASIC_3,BOX_RANDOM,2.00,*,1.00,668866.00,5.00,3.00
+BASIC_4,BOX_RANDOM,3.00,*,1.00,886688.00,5.00,2.00
+SPECIAL,BOX_FULL,*,verp_1|verp_2|verp_3|verp_4,0.20,6666ff,2.00,4.00
