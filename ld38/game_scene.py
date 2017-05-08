@@ -164,7 +164,8 @@ class GameScene(UIScene):
       self.log_view.text = "Throw where? (Pick a direction)"
 
   def log(self, text):
-    print(text)
+    if text.strip():
+      print(text)
     self.log_messages.append(text)
 
   def update_log(self):
