@@ -21,15 +21,18 @@ class NTrackPlayer:
   def __init__(self, track_names):
     self.players = []
     self.tracks = []
+    self.player_volume_directions = []
     for name in track_names:
       track = pyglet.resource.media(name)
-      self.tracks.append(track)
       player = pyglet.media.Player()
+      self.tracks.append(track)
       self.players.append(player)
+      self.player_volume_directions.append('down')
       player.queue(track)
       player.eos_action = player.EOS_LOOP
 
   def reset(self):
+    print('reset')
     self.player_volume_directions = ['down' for _ in range(len(self.tracks))]
     self.player_volume_directions[0] = 'up'
     for i, player in enumerate(self.players):
@@ -59,6 +62,9 @@ class NTrackPlayer:
           player.play()
 
   def set_active_track(self, i):
+    if i is not None and self.player_volume_directions[i] == 'up':
+      return
+
     self.player_volume_directions = ['down' for _ in range(len(self.tracks))]
     if i is not None:
       self.player_volume_directions[i] = 'up'

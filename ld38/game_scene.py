@@ -1,65 +1,30 @@
-from clubsandwich.draw import draw_line_vert
-from clubsandwich.blt.nice_terminal import terminal
-from clubsandwich.geom import Size, Point, Rect
 from clubsandwich.ui import (
   LabelView,
-  ButtonView,
   LayoutOptions,
   UIScene,
-  WindowView,
 )
 
-from .music import NTrackPlayer
-from .logger import Logger
-from .scenes import PauseScene, WinScene, LoseScene
-from .views import ProgressBarView, GameView, StatsView
 from .draw_game import draw_game
 from .gamestate import GameState
+from .logger import Logger
+from .music import NTrackPlayer
+from .scenes import PauseScene, WinScene, LoseScene
+from .sentences import simple_declarative_sentence
+from .views import ProgressBarView, GameView, StatsView
 from .const import (
   EnumEventNames,
-  EnumMode,
   EnumFeature,
   EnumMonsterMode,
   verbs,
   key_bindings,
+  BINDINGS_BY_KEY,
+  KEYS_TO_EVENTS,
+  KEYS_TO_DIRECTIONS,
 )
-from .sentences import simple_declarative_sentence
 
 DEBUG_PROFILE = False
 
-
 N_TRACK_PLAYER = NTrackPlayer(['Q1.mp3', 'Q2.mp3', 'Q3.mp3', 'Q4.mp3'])
-
-
-BINDINGS_BY_KEY = {}
-for binding in key_bindings.items:
-  for key in binding.keys:
-    BINDINGS_BY_KEY[key] = binding.id
-
-
-KEYS_TO_EVENTS = {
-  'U': EnumEventNames.key_u,
-  'D': EnumEventNames.key_d,
-  'L': EnumEventNames.key_l,
-  'R': EnumEventNames.key_r,
-  'UL': EnumEventNames.key_ul,
-  'UR': EnumEventNames.key_ur,
-  'DL': EnumEventNames.key_dl,
-  'DR': EnumEventNames.key_dr,
-  'WAIT': EnumEventNames.player_took_action,
-  'GET': EnumEventNames.key_get,
-}
-
-KEYS_TO_DIRECTIONS = {
-  'U': Point(0, -1),
-  'D': Point(0, 1),
-  'L': Point(-1, 0),
-  'R': Point(1, 0),
-  'UL': Point(-1, -1),
-  'UR': Point(1, -1),
-  'DL': Point(-1, 1),
-  'DR': Point(1, 1),
-}
 
 SIDEBAR_WIDTH = 21
 
@@ -79,13 +44,15 @@ if DEBUG_PROFILE:
   import cProfile
   pr = cProfile.Profile()
 
-class GameScene(UIScene):
-  def __init__(self, *args, **kwargs):
-    self.n_track_player = N_TRACK_PLAYER
-    self.n_track_player.reset()
 
-    self.mode = EnumMode.DEFAULT
-    self.gamestate = GameState()
+class GameAppearanceScene(UIScene):
+  """
+  Scene with the main game appearance
+  """
+  def __init__(self, gamestate, *args, **kwargs):
+    self.gamestate = gamestate
+    self.n_track_player = N_TRACK_PLAYER
+
     log_view = LabelView(
       text="", align_horz='left', color_bg='#333333', clear=True,
       layout_options=LayoutOptions.row_bottom(1).with_updates(left=SIDEBAR_WIDTH))
@@ -102,6 +69,46 @@ class GameScene(UIScene):
     super().__init__(views, *args, **kwargs)
 
     self.logger = Logger(log_view)
+    self.covers_screen = True
+
+  def enter(self, ctx):
+    super().enter(ctx)
+    self.ctx.clear()
+
+  def exit(self):
+    super().exit()
+    self.ctx.clear()
+
+  def terminal_update(self, is_active=True):
+    if DEBUG_PROFILE: pr.enable()
+
+    super().terminal_update(is_active)
+    self.n_track_player.step()
+    self.gamestate.active_level_state.consume_events()
+    self.logger.update_log()
+
+    if DEBUG_PROFILE: pr.disable()
+
+
+class GameModalInputScene(GameAppearanceScene):
+  """Scene that looks like the main game but is waiting for specific input"""
+  def terminal_read(self, val):
+    level_state = self.gamestate.active_level_state
+
+    if val not in BINDINGS_BY_KEY:
+      return
+
+    self.handle_key(BINDINGS_BY_KEY[val])
+    self.director.pop_scene()
+
+  def handle_key(self, k):
+    raise NotImplementedError()
+
+
+class GameMainScene(GameAppearanceScene):
+  def __init__(self, *args, **kwargs):
+    super().__init__(GameState(), *args, **kwargs)
+    self.n_track_player.reset()
 
     level_state = self.gamestate.active_level_state
     level_state.dispatcher.add_subscriber(self, EnumEventNames.door_open, level_state.player)
@@ -113,13 +120,8 @@ class GameScene(UIScene):
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_attacking, None)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.score_increased, None)
 
-  def enter(self, ctx):
-    super().enter(ctx)
-    self.ctx.clear()
-
   def exit(self):
     super().exit()
-    self.ctx.clear()
     self.n_track_player.stop()
     if DEBUG_PROFILE: pr.dump_stats('profile')
 
@@ -182,69 +184,45 @@ class GameScene(UIScene):
     self.stats_view.update()
 
   def terminal_read(self, val):
-    level_state = self.gamestate.active_level_state
-
     if val not in BINDINGS_BY_KEY:
       return
 
     key = BINDINGS_BY_KEY[val]
 
+    # blank out the log
     self.logger.log(' ')
     self.logger.update_log()
-    
-    if self.mode == EnumMode.DEFAULT:
-      self.handle_key_default(key)
-    elif self.mode == EnumMode.CLOSE:
-      self.handle_key_door_close(key)
-    elif self.mode == EnumMode.THROW:
-      self.handle_key_throw(key)
 
-  def handle_key_default(self, k):
+    self.handle_key(key)
+
+  def handle_key(self, k):
     level_state = self.gamestate.active_level_state
     if k in KEYS_TO_EVENTS:
       level_state.fire(KEYS_TO_EVENTS[k])
 
     if k == 'CLOSE':
-      self.logger.log("Close door in what direction?")
-      self.mode = EnumMode.CLOSE
-
-    if k == 'THROW':
+      self.director.push_scene(GameCloseScene(self.gamestate))
+    elif k == 'THROW':
       if level_state.player.inventory:
-        self.mode = EnumMode.THROW
-        self.logger.log("Throw in what direction?")
+        self.director.push_scene(GameThrowScene(self.gamestate))
       else:
         self.logger.log("You don't have anything to throw.")
-
-    if k == 'CANCEL':
+    elif k == 'CANCEL':
       self.director.push_scene(PauseScene())
 
-  def handle_key_door_close(self, k):
+
+class GameThrowScene(GameModalInputScene):
+  def enter(self, ctx):
+    super().enter(ctx)
+    self.logger.log("Throw in what direction?")
+
+  def handle_key(self, k):
     level_state = self.gamestate.active_level_state
     if k == 'CANCEL':
-      self.mode = EnumMode.DEFAULT
       return
 
     if k not in KEYS_TO_DIRECTIONS:
       self.logger.log("Invalid direction")
-      self.mode = EnumMode.DEFAULT
-      return
-
-    delta = KEYS_TO_DIRECTIONS[k]
-    if level_state.action_close(level_state.player, level_state.player.position + delta):
-      self.logger.log("You closed the door.")
-    else:
-      self.logger.log("There is no door there.")
-    self.mode = EnumMode.DEFAULT
-
-  def handle_key_throw(self, k):
-    level_state = self.gamestate.active_level_state
-    if k == 'CANCEL':
-      self.mode = EnumMode.DEFAULT
-      return
-
-    if k not in KEYS_TO_DIRECTIONS:
-      self.logger.log("Invalid direction")
-      self.mode = EnumMode.DEFAULT
       return
 
     delta = KEYS_TO_DIRECTIONS[k]
@@ -256,14 +234,25 @@ class GameScene(UIScene):
       self.logger.log(simple_declarative_sentence('PLAYER', verbs.THROW, 'ROCK'))
     else:
       self.logger.log("You can't throw that in that direction.")
-    self.mode = EnumMode.DEFAULT
 
-  def terminal_update(self, is_active=True):
-    if DEBUG_PROFILE: pr.enable()
-    self.n_track_player.step()
 
-    super().terminal_update(is_active)
-    self.gamestate.active_level_state.consume_events()
-    if DEBUG_PROFILE: pr.disable()
+class GameCloseScene(GameModalInputScene):
+  def enter(self, ctx):
+    super().enter(ctx)
+    self.logger.log("Close door in what direction?")
 
-    self.logger.update_log()
+  def handle_key(self, k):
+    level_state = self.gamestate.active_level_state
+    if k == 'CANCEL':
+      return
+
+    if k not in KEYS_TO_DIRECTIONS:
+      self.logger.log("Invalid direction")
+      return
+
+    delta = KEYS_TO_DIRECTIONS[k]
+    if level_state.action_close(level_state.player, level_state.player.position + delta):
+      self.logger.log("You closed the door.")
+    else:
+      self.logger.log("There is no door there.")
+

@@ -7,7 +7,7 @@ from clubsandwich.blt.nice_terminal import terminal
 from clubsandwich.director import DirectorLoop
 from clubsandwich.geom import Size
 
-from ld38.game_scene import GameScene
+from ld38.game_scene import GameMainScene
 from ld38.scenes import MainMenuScene
 
 
@@ -27,7 +27,7 @@ class GameLoop(DirectorLoop):
     """.format(size=WINDOW_SIZE, root=str(root)))
 
   def get_initial_scene(self):
-    return MainMenuScene(GameScene)
+    return MainMenuScene(GameMainScene)
 
 
 if __name__ == '__main__':

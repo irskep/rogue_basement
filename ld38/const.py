@@ -7,9 +7,13 @@ from enum import Enum, unique
 
 from bearlibterminal import terminal
 from clubsandwich.datastore import DataStore, CSVReader
+from clubsandwich.geom import Point
 
 
 root = Path(os.path.abspath(sys.argv[0])).parent
+
+
+### field types ###
 
 
 def _bool(val):
@@ -68,18 +72,13 @@ def _items(val):
   return items
 
 
+### enums, probably to promote to CSV ###
+
 
 class EnumUppercaseWithLookup(Enum):
   @classmethod
   def lookup(cls, k):
     return getattr(cls, k.upper())
-
-
-@unique
-class EnumMode(EnumUppercaseWithLookup):
-  DEFAULT = 0
-  CLOSE = 1
-  THROW = 2
 
 
 @unique
@@ -137,6 +136,10 @@ class EnumEventNames(EnumUppercaseWithLookup):
   door_open = "door_open"
   player_took_action = "player_took_action"
   score_increased = "score_increased"
+
+
+### CSVs ###
+
 
 entity_names = DataStore('EntityName', (
   ('id', _upper),
@@ -206,3 +209,38 @@ class KeyBindingsReader(CSVReader):
       yield [line[0], line[1:]]
 key_bindings.add_source(KeyBindingsReader(
   str(root / 'data' / 'key_bindings.csv'), skip_first_line=False))
+
+
+### assorted code constants ###
+
+
+BINDINGS_BY_KEY = {}
+for binding in key_bindings.items:
+  for key in binding.keys:
+    BINDINGS_BY_KEY[key] = binding.id
+
+
+KEYS_TO_EVENTS = {
+  'U': EnumEventNames.key_u,
+  'D': EnumEventNames.key_d,
+  'L': EnumEventNames.key_l,
+  'R': EnumEventNames.key_r,
+  'UL': EnumEventNames.key_ul,
+  'UR': EnumEventNames.key_ur,
+  'DL': EnumEventNames.key_dl,
+  'DR': EnumEventNames.key_dr,
+  'WAIT': EnumEventNames.player_took_action,
+  'GET': EnumEventNames.key_get,
+}
+
+
+KEYS_TO_DIRECTIONS = {
+  'U': Point(0, -1),
+  'D': Point(0, 1),
+  'L': Point(-1, 0),
+  'R': Point(1, 0),
+  'UL': Point(-1, -1),
+  'UR': Point(1, -1),
+  'DL': Point(-1, 1),
+  'DR': Point(1, 1),
+}
