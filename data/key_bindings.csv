@@ -1,0 +1,13 @@
+U,      UP,K,KP_8
+D,      DOWN,J,KP_2
+L,      LEFT,H,KP_4
+R,      RIGHT,L,KP_6
+UL,     Y,KP_7
+UR,     U,KP_9
+DL,     B,KP_1
+DR,     N,KP_3
+WAIT,   PERIOD,KP_5
+CLOSE,  C
+CANCEL, ESCAPE
+GET,    G
+THROW,  T

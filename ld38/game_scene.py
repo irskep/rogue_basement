@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 import os
 import sys
-os.environ["PYGLET_SHADOW_WINDOW"] = "false"
+from collections import defaultdict
 from enum import Enum
 from math import floor
 from pathlib import Path
 
+os.environ["PYGLET_SHADOW_WINDOW"] = "false"
 import pyglet
 
 from clubsandwich.draw import draw_line_vert
@@ -28,12 +29,7 @@ from .const import (
   EnumFeature,
   EnumMonsterMode,
   verbs,
-  KEYS_U, KEYS_D, KEYS_L, KEYS_R, KEYS_UL, KEYS_UR, KEYS_DL, KEYS_DR,
-  KEYS_WAIT,
-  KEYS_CLOSE,
-  KEYS_CANCEL,
-  KEYS_GET,
-  KEYS_THROW,
+  key_bindings,
 )
 from .sentences import simple_declarative_sentence
 
@@ -50,28 +46,35 @@ tracks = [
 ]
 
 
-KEYS_AND_EVENTS = [
-  (KEYS_U, EnumEventNames.key_u),
-  (KEYS_D, EnumEventNames.key_d),
-  (KEYS_L, EnumEventNames.key_l),
-  (KEYS_R, EnumEventNames.key_r),
-  (KEYS_UL, EnumEventNames.key_ul),
-  (KEYS_UR, EnumEventNames.key_ur),
-  (KEYS_DL, EnumEventNames.key_dl),
-  (KEYS_DR, EnumEventNames.key_dr),
-  (KEYS_WAIT, EnumEventNames.player_took_action),
-  (KEYS_GET, EnumEventNames.key_get)
-]
-KEYS_AND_DIRECTIONS = [
-  (KEYS_U, Point(0, -1)),
-  (KEYS_D, Point(0, 1)),
-  (KEYS_L, Point(-1, 0)),
-  (KEYS_R, Point(1, 0)),
-  (KEYS_UL, Point(-1, -1)),
-  (KEYS_UR, Point(1, -1)),
-  (KEYS_DL, Point(-1, 1)),
-  (KEYS_DR, Point(1, 1)),
-]
+BINDINGS_BY_KEY = {}
+for binding in key_bindings.items:
+  for key in binding.keys:
+    BINDINGS_BY_KEY[key] = binding.id
+
+
+KEYS_TO_EVENTS = {
+  'U': EnumEventNames.key_u,
+  'D': EnumEventNames.key_d,
+  'L': EnumEventNames.key_l,
+  'R': EnumEventNames.key_r,
+  'UL': EnumEventNames.key_ul,
+  'UR': EnumEventNames.key_ur,
+  'DL': EnumEventNames.key_dl,
+  'DR': EnumEventNames.key_dr,
+  'WAIT': EnumEventNames.player_took_action,
+  'GET': EnumEventNames.key_get,
+}
+
+KEYS_TO_DIRECTIONS = {
+  'U': Point(0, -1),
+  'D': Point(0, 1),
+  'L': Point(-1, 0),
+  'R': Point(1, 0),
+  'UL': Point(-1, -1),
+  'UR': Point(1, -1),
+  'DL': Point(-1, 1),
+  'DR': Point(1, 1),
+}
 
 SIDEBAR_WIDTH = 21
 
@@ -432,54 +435,81 @@ class GameScene(UIScene):
     self.stats_view.update()
 
   def terminal_read(self, val):
-    if DEBUG_PROFILE: pr.enable()
     level_state = self.gamestate.active_level_state
+
+    if val not in BINDINGS_BY_KEY:
+      return
+
+    key = BINDINGS_BY_KEY[val]
+
+    self.log(' ')
+    self.update_log()
+    
     if self.mode == EnumMode.DEFAULT:
-      if val == terminal.TK_Q:
-        level_state.action_die()
-      for keys, event_name in KEYS_AND_EVENTS:
-        if val in keys:
-          level_state.fire(event_name)
-      if val in KEYS_CLOSE:
-        self.mode = EnumMode.CLOSE
-      if val in KEYS_THROW:
-        if level_state.player.inventory:
-          self.mode = EnumMode.THROW
-        else:
-          self.log("You don't have anything to throw.")
-      if val in KEYS_CANCEL:
-        self.director.push_scene(PauseScene())
+      self.handle_key_default(key)
     elif self.mode == EnumMode.CLOSE:
-      if val in KEYS_CANCEL:
-        self.mode = EnumMode.DEFAULT
-      for keys, delta in KEYS_AND_DIRECTIONS:
-        if val in keys:
-          if level_state.action_close(level_state.player, level_state.player.position + delta):
-            self.log("You closed the door.")
-          else:
-            self.log("There is no door there.")
-          self.mode = EnumMode.DEFAULT
-          if DEBUG_PROFILE: pr.disable()
-          return
-      if DEBUG_PROFILE: pr.disable()
-      self.log("Invalid direction")
+      self.handle_key_door_close(key)
     elif self.mode == EnumMode.THROW:
-      if val in KEYS_CANCEL:
-        self.mode = EnumMode.DEFAULT
-      for keys, delta in KEYS_AND_DIRECTIONS:
-        if val in keys:
-          item = level_state.player.inventory[0]
-          did_throw = level_state.action_throw(
-            level_state.player, item, level_state.player.position + delta * 1000, 2)
-          if did_throw:
-            self.log("You throw the {}".format(item.item_type.id))
-          else:
-            self.log("You can't throw that in that direction.")
-          self.mode = EnumMode.DEFAULT
-          if DEBUG_PROFILE: pr.disable()
-          return
-      if DEBUG_PROFILE: pr.disable()
+      self.handle_key_throw(key)
+
+  def handle_key_default(self, k):
+    level_state = self.gamestate.active_level_state
+    if k in KEYS_TO_EVENTS:
+      level_state.fire(KEYS_TO_EVENTS[k])
+
+    if k == 'CLOSE':
+      self.log("Close door in what direction?")
+      self.mode = EnumMode.CLOSE
+
+    if k == 'THROW':
+      if level_state.player.inventory:
+        self.mode = EnumMode.THROW
+        self.log("Throw in what direction?")
+      else:
+        self.log("You don't have anything to throw.")
+
+    if k == 'CANCEL':
+      self.director.push_scene(PauseScene())
+
+  def handle_key_door_close(self, k):
+    level_state = self.gamestate.active_level_state
+    if k == 'CANCEL':
+      self.mode = EnumMode.DEFAULT
+      return
+
+    if k not in KEYS_TO_DIRECTIONS:
       self.log("Invalid direction")
+      self.mode = EnumMode.DEFAULT
+      return
+
+    delta = KEYS_TO_DIRECTIONS[k]
+    if level_state.action_close(level_state.player, level_state.player.position + delta):
+      self.log("You closed the door.")
+    else:
+      self.log("There is no door there.")
+    self.mode = EnumMode.DEFAULT
+
+  def handle_key_throw(self, k):
+    level_state = self.gamestate.active_level_state
+    if k == 'CANCEL':
+      self.mode = EnumMode.DEFAULT
+      return
+
+    if k not in KEYS_TO_DIRECTIONS:
+      self.log("Invalid direction")
+      self.mode = EnumMode.DEFAULT
+      return
+
+    delta = KEYS_TO_DIRECTIONS[k]
+
+    item = level_state.player.inventory[0]
+    did_throw = level_state.action_throw(
+      level_state.player, item, level_state.player.position + delta * 1000, 2)
+    if did_throw:
+      self.log("You throw the {}".format(item.item_type.id))
+    else:
+      self.log("You can't throw that in that direction.")
+    self.mode = EnumMode.DEFAULT
 
   def terminal_update(self, is_active=True):
     if DEBUG_PROFILE: pr.enable()

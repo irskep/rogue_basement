@@ -1,26 +1,16 @@
-import csv
 import os
 import re
 import sys
 from math import floor
-from collections import namedtuple
 from pathlib import Path
 from enum import Enum, unique
 
-from clubsandwich.blt.nice_terminal import terminal
+from bearlibterminal import terminal
 from clubsandwich.datastore import DataStore, CSVReader
 
 
 root = Path(os.path.abspath(sys.argv[0])).parent
-def csv_iterator(filename):
-  with (root / 'data' / filename).open() as f:
-    reader = csv.reader(f)
-    skip_next_line = True
-    for line in reader:
-      if skip_next_line:
-        skip_next_line = False
-        continue
-      yield line
+
 
 def _bool(val):
   return val.lower() in ('1', 'yes', 'true')
@@ -148,21 +138,6 @@ class EnumEventNames(EnumUppercaseWithLookup):
   player_took_action = "player_took_action"
   score_increased = "score_increased"
 
-
-KEYS_U = (terminal.TK_UP, terminal.TK_K, terminal.TK_KP_8)
-KEYS_D = (terminal.TK_DOWN, terminal.TK_J, terminal.TK_KP_2)
-KEYS_L = (terminal.TK_LEFT, terminal.TK_H, terminal.TK_KP_4)
-KEYS_R = (terminal.TK_RIGHT, terminal.TK_L, terminal.TK_KP_6)
-KEYS_UL = (terminal.TK_Y, terminal.TK_KP_7)
-KEYS_UR = (terminal.TK_U, terminal.TK_KP_9)
-KEYS_DL = (terminal.TK_B, terminal.TK_KP_1)
-KEYS_DR = (terminal.TK_N, terminal.TK_KP_3)
-KEYS_WAIT = (terminal.TK_PERIOD, terminal.TK_KP_5)
-KEYS_CLOSE = (terminal.TK_C,)
-KEYS_CANCEL = (terminal.TK_ESCAPE,)
-KEYS_GET = (terminal.TK_G,)
-KEYS_THROW = (terminal.TK_T,)
-
 entity_names = DataStore('EntityName', (
   ('id', _upper),
   ('name', str),
@@ -217,3 +192,17 @@ class ItemTypeReader(CSVReader):
     for line in super().read():
       yield line[:3] + [line[3:]]
 item_types.add_source(ItemTypeReader(str(root / 'data' / 'items.csv')))
+
+def _key_list(str_list):
+  return [getattr(terminal, 'TK_' + s.strip()) for s in str_list]
+key_bindings = DataStore('KeyBinding', (
+  ('id', str),
+  ('keys', _key_list)
+))
+class KeyBindingsReader(CSVReader):
+  """Combines cols 1-end as list"""
+  def read(self):
+    for line in super().read():
+      yield [line[0], line[1:]]
+key_bindings.add_source(KeyBindingsReader(
+  str(root / 'data' / 'key_bindings.csv'), skip_first_line=False))
