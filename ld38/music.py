@@ -5,9 +5,10 @@ from pathlib import Path
 os.environ["PYGLET_SHADOW_WINDOW"] = "false"
 import pyglet
 
+from .const import GAME_ROOT
 
-root = Path(os.path.abspath(sys.argv[0])).parent
-pyglet.resource.path = [str(root / 'assets')]
+
+pyglet.resource.path = [str(GAME_ROOT / 'assets')]
 
 
 class NTrackPlayer:

@@ -129,29 +129,3 @@ class WinScene(UIScene):
 
   def done(self):
     self.director.pop_to_first_scene()
-
-
-class MainMenuScene(UIScene):
-  def __init__(self, game_scene_factory, *args, **kwargs):
-    self.game_scene_factory = game_scene_factory
-    views = [
-      LabelView(
-        TITLE[1:].rstrip(),
-        layout_options=LayoutOptions.row_top(0.5)),
-      LabelView(
-        ABOUT,
-        color_fg='#ffcb00',
-        layout_options=LayoutOptions.centered('intrinsic', 'intrinsic').with_updates(top=28)),
-      ButtonView(
-        text="Descend the stairs", callback=self.play,
-        layout_options=LayoutOptions.row_bottom(10).with_updates(
-          left=0.2, width=0.2, right=None)),
-      ButtonView(
-        text="Quit", callback=lambda: self.director.pop_scene(),
-        layout_options=LayoutOptions.row_bottom(10).with_updates(
-          left=0.6, width=0.2, right=None)),
-    ]
-    super().__init__(views, *args, **kwargs)
-
-  def play(self):
-    self.director.push_scene(self.game_scene_factory())

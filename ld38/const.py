@@ -10,7 +10,7 @@ from clubsandwich.datastore import DataStore, CSVReader
 from clubsandwich.geom import Point
 
 
-root = Path(os.path.abspath(sys.argv[0])).parent
+GAME_ROOT = Path(os.path.abspath(sys.argv[0])).parent
 
 
 ### field types ###
@@ -208,14 +208,14 @@ def reload():
   item_types.unload()
   key_bindings.unload()
 
-  terrain_types.add_source(CSVReader(str(root / 'data' / 'terrain.csv')))
-  entity_names.add_source(CSVReader(str(root / 'data' / 'names.csv')))
-  verbs.add_source(CSVReader(str(root / 'data' / 'verbs.csv')))
-  room_types.add_source(CSVReader(str(root / 'data' / 'rooms.csv')))
-  monster_types.add_source(CSVReader(str(root / 'data' / 'monsters.csv')))
-  item_types.add_source(ItemTypeReader(str(root / 'data' / 'items.csv')))
+  terrain_types.add_source(CSVReader(str(GAME_ROOT / 'data' / 'terrain.csv')))
+  entity_names.add_source(CSVReader(str(GAME_ROOT / 'data' / 'names.csv')))
+  verbs.add_source(CSVReader(str(GAME_ROOT / 'data' / 'verbs.csv')))
+  room_types.add_source(CSVReader(str(GAME_ROOT / 'data' / 'rooms.csv')))
+  monster_types.add_source(CSVReader(str(GAME_ROOT / 'data' / 'monsters.csv')))
+  item_types.add_source(ItemTypeReader(str(GAME_ROOT / 'data' / 'items.csv')))
   key_bindings.add_source(KeyBindingsReader(
-    str(root / 'data' / 'key_bindings.csv'), skip_first_line=False))
+    str(GAME_ROOT / 'data' / 'key_bindings.csv'), skip_first_line=False))
 reload()
 
 
