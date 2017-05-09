@@ -15,18 +15,43 @@ GAME_ROOT = Path(os.path.abspath(sys.argv[0])).parent
 
 ### field types ###
 
+# Rogue Basement uses clubsandwich's DataStore class to read and store
+# information from CSV files. Each row is converted to a namedtuple using a
+# mapping of (field name, conversion_function), where conversion_function
+# takes a string and returns some value.
+#
+# These are all the field value conversion functions used by Rogue Basement.
 
 def _bool(val):
+  """
+  Return ``True`` iff *val* is "1", "yes", or "true", otherwise ``False``.
+
+  >>> _bool('TRUE')
+  True
+  >>> _bool('nah')
+  False
+  """
   return val.lower() in ('1', 'yes', 'true')
 
 def _int(val):
   """
-  Parse string as an int, even if it has decimals. This works around some
-  dumb scim editor behavior.
+  Parse string as an int, even if it has decimals.
+
+  >>> _int('1.0')
+  1
+  >>> _int('1.5')
+  1
   """
   return floor(float(val))
 
 def _enum_value(TheEnum):
+  """
+  Returns a *function* that converts strings into values of the given Enum
+  subclass.
+
+  >>> _enum_value(EnumFeature)("STAIRS_DOWN")
+  EnumFeature.STAIRS_DOWN
+  """
   def _specific_enum_value(val):
     try:
       return TheEnum[val]
@@ -34,22 +59,60 @@ def _enum_value(TheEnum):
       raise ValueError("Invalid value for enum {!r}: {!r}".format(TheEnum, val))
   return _specific_enum_value
 
-def _int_or_star(val):
+def _int_or_wildcard(val):
+  """
+  Returns ``None`` if *val* is ``'*'``, otherwise parse as an int.
+
+  >>> _int_or_wildcard("5")
+  5
+  >>> _int_or_wildcard("*")
+  None
+  """
   return None if val == '*' else _int(val)
 
 def _pipe_separated_uppercase(val):
+  """
+  Returns ``None`` if *val* is ``'*'``. Otherwise, split *val* on the ``'|'``
+  character and return a list of the items, transformed to all caps.
+
+  >>> _pipe_separated_uppercase("a|b|c")
+  ['A', 'B', 'C']
+  >>> _pipe_separated_uppercase("*")
+  None
+  """
   return None if val == '*' else set(s.upper() for s in val.split('|'))
 
 def _pipe_separated(val):
+  """
+  Returns *val* split on the ``'|'`` character.
+
+  >>> _pipe_separated("a|b|c")
+  ['a', 'b', 'c]
+  """
   return [s.strip() for s in val.split('|') if s.strip()]
 
 def _upper(val):
+  """
+  Returns *val*, uppercased.
+
+  >>> _upper('a')
+  'A'
+  """
   return val.upper()
 
 def _color(val):
   """
-  Parse string as hex color string. scim does some dumb things like truncate,
-  convert to float, and remove #, so fix all that crap.
+  Parse string as hex color string. The scim CSV does some dumb things like
+  truncate, convert to float, and remove #, so fix all that crap.
+
+  >>> _color('#ff0000')
+  '#ff0000'
+  >>> _color('ff0000')
+  '#ff0000'
+  >>> _color('668800.00')
+  '#668800'
+  >>> _color('345')
+  '#000345'
   """
   if val.startswith('#'):
     return val  # already ok
@@ -60,13 +123,40 @@ def _color(val):
   return '#' + val
 
 def _float_list(str_list):
+  """
+  Converts all items in the given list to floats.
+
+  Most other conversion functions take strings. But the readers for items.csv
+  and key_bindings.csv aggregate several columns into a single value before
+  passing them to the DataStore.
+
+  This is probably confusing. I'm sorry.
+  """
   return [float(s) for s in str_list]
 
 def _key_list(str_list):
+  """
+  key_bindings.csv's values are BearLibTerminal constant names, minus the 3-
+  character ``TK_`` prefix. This function takes a list of those values and adds
+  back the prefix, and looks it up in the ``terminal`` namespace to get the
+  actual value of the constant.
+
+  >>> _key_list('UP|DOWN')
+  [terminal.TK_UP, terminal.TK_DOWN]
+  """
   return [getattr(terminal, 'TK_' + s.strip()) for s in str_list]
 
 ITEM_RE = re.compile(r'(.*)x(\d+)')
 def _items(val):
+  """
+  Parser for the monsters.csv column specifying what items a monster is
+  carrying. There may be multiple values split on the ``'|'`` character,
+  and each value looks like ``ITEM_IDx2``, where the number to the right of the
+  ``x`` specifies how many of the given item there are.
+
+  >>> _items("ROCKx4")
+  ['ROCK', 'ROCK', 'ROCK', 'ROCK']
+  """
   if not val:
     return []
   items = []
@@ -80,21 +170,15 @@ def _items(val):
 ### enums, probably to promote to CSV ###
 
 
-class EnumUppercaseWithLookup(Enum):
-  @classmethod
-  def lookup(cls, k):
-    return getattr(cls, k.upper())
-
-
 @unique
-class EnumFeature(EnumUppercaseWithLookup):
+class EnumFeature(Enum):
   NONE = 0
   STAIRS_UP = 1
   STAIRS_DOWN = 2
 
 
 @unique
-class EnumMonsterMode(EnumUppercaseWithLookup):
+class EnumMonsterMode(Enum):
   DEFAULT = 0
   CHASING = 1
   FLEEING = 2
@@ -103,13 +187,13 @@ class EnumMonsterMode(EnumUppercaseWithLookup):
 
 
 @unique
-class EnumRoomShape(EnumUppercaseWithLookup):
+class EnumRoomShape(Enum):
   BOX_RANDOM = 0
   BOX_FULL = 1
 
 
 @unique
-class EnumEventNames(EnumUppercaseWithLookup):
+class EnumEventNames(Enum):
   key_u = "key_u"
   key_d = "key_d"
   key_l = "key_l"
@@ -156,7 +240,7 @@ verbs = DataStore('Verb', (
 room_types = DataStore('RoomType', (
   ('id', str),
   ('shape', _enum_value(EnumRoomShape)),
-  ('difficulty', _int_or_star),
+  ('difficulty', _int_or_wildcard),
   ('monsters', _pipe_separated_uppercase),
   ('chance', float),
   ('color', _color),
