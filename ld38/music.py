@@ -32,7 +32,6 @@ class NTrackPlayer:
       player.eos_action = player.EOS_LOOP
 
   def reset(self):
-    print('reset')
     self.player_volume_directions = ['down' for _ in range(len(self.tracks))]
     self.player_volume_directions[0] = 'up'
     for i, player in enumerate(self.players):

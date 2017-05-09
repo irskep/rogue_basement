@@ -1,4 +1,4 @@
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from math import floor
 from random import randrange, uniform
 from uuid import uuid4
@@ -14,10 +14,40 @@ from .const import (
 
 from clubsandwich.geom import Rect, Point, Size
 from clubsandwich.generators import RandomBSPTree
-from clubsandwich.tilemap import TileMap, CellOutOfBoundsError
+from clubsandwich.tilemap import TileMap, Cell, CellOutOfBoundsError
 
 
 DEBUG_ALL_DOORS_OPEN = False
+
+
+class RogueBasementCell(Cell):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.room_id = None
+    self.terrain = terrain_types.EMPTY
+
+
+class RogueBasementTileMap(TileMap):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, cell_class=RogueBasementCell, **kwargs)
+    self.rooms_by_id = {}
+    self.cells_by_room_id = defaultdict(list)
+    self.occupied_cells = set()
+
+  def assign_room(self, point, room_id):
+    cell = self.cell(point)
+    assert not cell.room_id
+    cell.room_id = room_id
+    self.cells_by_room_id[room_id].append(cell)
+
+  def get_neighbors(self, room):
+    return [self.rooms_by_id[room_id] for room_id in room.neighbor_ids]
+
+  def get_room(self, point):
+    room_id = self.cell(point).room_id
+    if room_id is None:
+      return None
+    return self.rooms_by_id[room_id]
 
 
 def weighted_choice(choices):
@@ -300,7 +330,8 @@ def _bsp_randrange(level, a, b):
     return randrange(a, b)
 
 
-def generate_dungeon(tilemap):
+def generate_dungeon(size):
+  tilemap = RogueBasementTileMap(size)
   generator = RandomBSPTree(tilemap.size, 4, randrange_func=_bsp_randrange)
   # difficulty: root node for _leaves of that difficulty_
   difficulty_map = {

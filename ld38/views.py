@@ -27,8 +27,8 @@ class ProgressBarView(View):
 
 
 class GameView(View):
-  def __init__(self, gamestate, *args, **kwargs):
-    self.gamestate = gamestate
+  def __init__(self, game_state, *args, **kwargs):
+    self.game_state = game_state
     super().__init__(*args, **kwargs)
     self.last_known_player_position = Point(0, 0)
 
@@ -36,12 +36,12 @@ class GameView(View):
     ctx.bkcolor('#000000')
     ctx.clear_area(self.bounds)
 
-    current_player_position = self.gamestate.active_level_state.player.position  
+    current_player_position = self.game_state.active_level_state.player.position  
     if current_player_position is not None:
       self.last_known_player_position = current_player_position
     half_size = (self.bounds.size / 2).floored
     draw_game(
-      self.gamestate,
+      self.game_state,
       bounds=Rect(
         self.last_known_player_position - half_size,
         self.bounds.size),
@@ -49,8 +49,8 @@ class GameView(View):
 
 
 class StatsView(View):
-  def __init__(self, gamestate, *args, **kwargs):
-    self.gamestate = gamestate
+  def __init__(self, game_state, *args, **kwargs):
+    self.game_state = game_state
     self.progress_bar = ProgressBarView(
       fraction=1,
       layout_options=LayoutOptions.row_top(1).with_updates(top=3, right=1))
@@ -85,16 +85,16 @@ class StatsView(View):
 
   def update(self):
     self.progress_bar.fraction = (
-      self.gamestate.active_level_state.player.state['hp'] /
-      self.gamestate.active_level_state.player.stats['hp_max'])
+      self.game_state.active_level_state.player.state['hp'] /
+      self.game_state.active_level_state.player.stats['hp_max'])
     self.inventory_count.text = "  Rocks: {}  ".format(
-      len(self.gamestate.active_level_state.player.inventory))
+      len(self.game_state.active_level_state.player.inventory))
     # HACK: extra padding so the label clears its background properly when it
     # shrinks
     self.health_label.text = "  Health: {}  ".format(
-      self.gamestate.active_level_state.player.state['hp'])
+      self.game_state.active_level_state.player.state['hp'])
     self.score_label.text = "Score: {}".format(
-      self.gamestate.active_level_state.score)
+      self.game_state.active_level_state.score)
 
   def draw(self, ctx):
     ctx.color('#ffffff')

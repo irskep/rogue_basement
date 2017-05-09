@@ -1,9 +1,8 @@
-from collections import deque, defaultdict
+from collections import deque
 from uuid import uuid4
 
 from clubsandwich.event_dispatcher import EventDispatcher
-from clubsandwich.geom import Size, Point
-from clubsandwich.tilemap import TileMap, Cell, CellOutOfBoundsError
+from clubsandwich.tilemap import CellOutOfBoundsError
 from clubsandwich.line_of_sight import get_visible_points
 
 from .entity import Entity, Item
@@ -11,46 +10,11 @@ from .behavior import (
   CompositeBehavior,
   BEHAVIORS_BY_ID,
 )
-from .level_generator import generate_dungeon
 from .const import (
   EnumEventNames,
-  terrain_types,
   monster_types,
   item_types,
 )
-
-
-LEVEL_SIZE = Size(100, 60)
-
-
-class RogueBasementCell(Cell):
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs)
-    self.room_id = None
-    self.terrain = terrain_types.EMPTY
-
-
-class RogueBasementTileMap(TileMap):
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, cell_class=RogueBasementCell, **kwargs)
-    self.rooms_by_id = {}
-    self.cells_by_room_id = defaultdict(list)
-    self.occupied_cells = set()
-
-  def assign_room(self, point, room_id):
-    cell = self.cell(point)
-    assert not cell.room_id
-    cell.room_id = room_id
-    self.cells_by_room_id[room_id].append(cell)
-
-  def get_neighbors(self, room):
-    return [self.rooms_by_id[room_id] for room_id in room.neighbor_ids]
-
-  def get_room(self, point):
-    room_id = self.cell(point).room_id
-    if room_id is None:
-      return None
-    return self.rooms_by_id[room_id]
 
 
 class LevelState:
@@ -219,20 +183,3 @@ class LevelState:
     if self.player.position is None:
       return
     self.fire(EnumEventNames.player_took_action, data=position, entity=None)
-
-
-class GameState:
-  def __init__(self):
-    self.turn_number = 0
-    self.level_states_by_id = {}
-
-    self.active_id = self.add_level().uuid
-
-  @property
-  def active_level_state(self):
-    return self.level_states_by_id[self.active_id]
-
-  def add_level(self):
-    level_state = LevelState(generate_dungeon(RogueBasementTileMap(LEVEL_SIZE)))
-    self.level_states_by_id[level_state.uuid] = level_state
-    return level_state

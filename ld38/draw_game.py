@@ -20,19 +20,19 @@ C_TRANSITION_3_4 = '#00ffff'
 C_MONSTER_STUNNED = '#0088ff'
 
 
-def draw_game(gamestate, bounds, ctx):
-  level_state = gamestate.active_level_state
+def draw_game(game_state, bounds, ctx):
+  level_state = game_state.active_level_state
   entity_cache = {}
   for entity in level_state.entities:
     if entity.position and bounds.contains(entity.position):
       entity_cache[entity.position] = entity
 
   with ctx.translate(bounds.origin * -1):
-    _draw_game(gamestate, bounds, ctx, entity_cache)
+    _draw_game(game_state, bounds, ctx, entity_cache)
 
 
-def _draw_game(gamestate, bounds, ctx, entity_cache):
-  level_state = gamestate.active_level_state
+def _draw_game(game_state, bounds, ctx, entity_cache):
+  level_state = game_state.active_level_state
 
   pointscache_color = None
   pointscache_values = None
