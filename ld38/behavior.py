@@ -53,41 +53,6 @@ class Behavior:
       dispatcher.remove_subscriber(self, name, self.entity if self.is_local_to_entity else None)
 
 
-@behavior('keyboard_movement')
-class KeyboardMovementBehavior(Behavior):
-  def __init__(self, entity, level_state):
-    super().__init__(entity, level_state, [
-      EnumEventNames.key_u,
-      EnumEventNames.key_d,
-      EnumEventNames.key_l,
-      EnumEventNames.key_r,
-      EnumEventNames.key_ul,
-      EnumEventNames.key_ur,
-      EnumEventNames.key_dl,
-      EnumEventNames.key_dr,
-      EnumEventNames.key_get,
-    ])
-
-  def on_key_u(self, event):
-    action_move(self.level_state, self.entity, self.entity.position + Point(0, -1))
-  def on_key_d(self, event):
-    action_move(self.level_state, self.entity, self.entity.position + Point(0, 1))
-  def on_key_l(self, event):
-    action_move(self.level_state, self.entity, self.entity.position + Point(-1, 0))
-  def on_key_r(self, event):
-    action_move(self.level_state, self.entity, self.entity.position + Point(1, 0))
-  def on_key_ul(self, event):
-    action_move(self.level_state, self.entity, self.entity.position + Point(-1, -1))
-  def on_key_ur(self, event):
-    action_move(self.level_state, self.entity, self.entity.position + Point(1, -1))
-  def on_key_dl(self, event):
-    action_move(self.level_state, self.entity, self.entity.position + Point(-1, 1))
-  def on_key_dr(self, event):
-    action_move(self.level_state, self.entity, self.entity.position + Point(1, 1))
-  def on_key_get(self, event):
-    action_pickup_item(self.level_state, self.entity)
-
-
 class CompositeBehavior(Behavior):
   def __init__(self, entity, level_state, sub_behaviors):
     self.sub_behaviors = sub_behaviors

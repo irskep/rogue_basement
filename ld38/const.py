@@ -41,7 +41,7 @@ def _pipe_separated_uppercase(val):
   return None if val == '*' else set(s.upper() for s in val.split('|'))
 
 def _pipe_separated(val):
-  return val.split('|')
+  return [s.strip() for s in val.split('|') if s.strip()]
 
 def _upper(val):
   return val.upper()
@@ -226,20 +226,6 @@ BINDINGS_BY_KEY = {}
 for binding in key_bindings.items:
   for key in binding.keys:
     BINDINGS_BY_KEY[key] = binding.id
-
-
-KEYS_TO_EVENTS = {
-  'U': EnumEventNames.key_u,
-  'D': EnumEventNames.key_d,
-  'L': EnumEventNames.key_l,
-  'R': EnumEventNames.key_r,
-  'UL': EnumEventNames.key_ul,
-  'UR': EnumEventNames.key_ur,
-  'DL': EnumEventNames.key_dl,
-  'DR': EnumEventNames.key_dr,
-  'WAIT': EnumEventNames.player_took_action,
-  'GET': EnumEventNames.key_get,
-}
 
 
 KEYS_TO_DIRECTIONS = {

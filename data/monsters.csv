@@ -1,5 +1,5 @@
 id,Char,Color,Difficulty,Chance,Behaviors,hp_max,strength,items
-player,@,ffffff,-1,0.00,keyboard_movement,100,5.00,
+player,@,ffffff,-1,0.00,,100,5.00,
 verp_1,v,ffff00,0.00,1.00,stunnable|beeline_visible|random_walk,10,2.00,
 verp_2,v,ff8800,1.00,1.00,stunnable|beeline_visible|random_walk,20,4.00,
 verp_3,v,ff0000,2.00,1.00,stunnable|beeline_target|random_walk,30,8.00,

@@ -4,7 +4,12 @@ from clubsandwich.ui import (
   UIScene,
 )
 
-from .actions import action_throw, action_close
+from .actions import (
+  action_throw,
+  action_close,
+  action_move,
+  action_pickup_item,
+)
 from .draw_game import draw_game
 from .gamestate import GameState
 from .logger import Logger
@@ -19,7 +24,6 @@ from .const import (
   verbs,
   key_bindings,
   BINDINGS_BY_KEY,
-  KEYS_TO_EVENTS,
   KEYS_TO_DIRECTIONS,
 )
 
@@ -198,10 +202,14 @@ class GameMainScene(GameAppearanceScene):
 
   def handle_key(self, k):
     level_state = self.gamestate.active_level_state
-    if k in KEYS_TO_EVENTS:
-      level_state.fire(KEYS_TO_EVENTS[k])
-
-    if k == 'CLOSE':
+    if k in KEYS_TO_DIRECTIONS:
+      point = level_state.player.position + KEYS_TO_DIRECTIONS[k]
+      action_move(level_state, level_state.player, point)
+    elif k == 'GET':
+      action_pickup_item(level_state, level_state.player)
+    elif k == 'WAIT':
+      level_state.fire(EnumEventNames.player_took_action)
+    elif k == 'CLOSE':
       self.director.push_scene(GameCloseScene(self.gamestate))
     elif k == 'THROW':
       if level_state.player.inventory:
