@@ -37,7 +37,8 @@ def action_throw(level_state, entity, item, target_position, speed):
     'path': [None] + path[1:],  # behavior executes immediately but rock is already placed
     'speed': speed,
   })
-  ### HACK HACK HACK HACK: thrown object takes strength from thrower ###
+
+  ### Thrown object takes strength from thrower ###
   rock_in_flight.stats['strength'] = entity.stats['strength']
   rock_in_flight.inventory.append(item)
   
