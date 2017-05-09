@@ -167,7 +167,12 @@ def _items(val):
   return items
 
 
-### enums, probably to promote to CSV ###
+### enums ###
+
+
+# Some values are stored in Enum objects. If I were to develop this game
+# further I would probably replace all enums with CSVs, but for now here they
+# are.
 
 
 @unique
@@ -194,16 +199,6 @@ class EnumRoomShape(Enum):
 
 @unique
 class EnumEventNames(Enum):
-  key_u = "key_u"
-  key_d = "key_d"
-  key_l = "key_l"
-  key_r = "key_r"
-  key_ul = "key_ul"
-  key_ur = "key_ur"
-  key_dl = "key_dl"
-  key_dr = "key_dr"
-  key_get = "key_get"
-
   entity_moved = "entity_moved"
   entity_bumped = "entity_bumped"
   entity_died = "entity_died"
@@ -219,24 +214,55 @@ class EnumEventNames(Enum):
 
 ### CSVs ###
 
+# This section deals with loading data from CSV files. For each individual
+# file/type, all rows in the file are converted to namedtuple classes wit the
+# given name and schema, and stored by ID in a DataStore object.
+
+# Terrain is an easy example. terrain.csv looks like this:
+
+# id,walkable,lightable
+# EMPTY,false,false
+# FLOOR,true,true
+# WALL,false,false
+# DOOR_CLOSED,false,false
+# DOOR_OPEN,true,true
+# CORRIDOR,true,true
+#
+# The first line is ignored because it's just the label.
+# The remaining lines are converted like this:
+#
+# row = TerrainType(str(line[0]), _bool(line[1]), _bool(line[2]))
+#
+# All items are then accessible by ID in a very simple way:
+#
+# >>> terrain_types.FLOOR
+# TerrainType(id='FLOOR', walkable=True, lightable=True)
 terrain_types = DataStore('TerrainType', (
   ('id', str),
   ('walkable', _bool),
   ('lightable', _bool),
 ))
 
+# The entity_names data store knows what the human-readable name of a monster
+# is, and whether you refer to it in the second or third person when generating
+# text.
 entity_names = DataStore('EntityName', (
   ('id', _upper),
   ('name', str),
   ('is_second_person', _bool),
 ))
 
+# The verbs data store has the second and third person versions of all the
+# verbs used in the game.
 verbs = DataStore('Verb', (
   ('id', str),
   ('present_2p', str),
   ('present_3p', str),
 ))
 
+# The room_types data store determines what kinds of rooms there are, what
+# shape they have, what they look like, and what's inside them. This is mostly
+# used by level_generator.py.
 room_types = DataStore('RoomType', (
   ('id', str),
   ('shape', _enum_value(EnumRoomShape)),
@@ -248,6 +274,8 @@ room_types = DataStore('RoomType', (
   ('item_density', float),
 ))
 
+# The monster_types data store has all information about monsters at the time
+# they are added to the world.
 monster_types = DataStore('MonsterType', (
   ('id', _upper),
   ('char', str),
@@ -260,6 +288,20 @@ monster_types = DataStore('MonsterType', (
   ('items', _items),
 ))
 
+# The item_types data store has information about items. There are only 2
+# entries, so here they are:
+#
+# id,character,color,chance_0,chance_1,chance_2,chance_3
+# ROCK,*,#6a867d,1,1,1,1
+# GOLD,$,#aaaa00,0,0,0,0
+#
+# This data store is a little bit interesting because it has a custom reader
+# object. Originally I had thought I would have different item drop rates per
+# area, so I allocated 4 columns to store all that information. As you can see
+# it's all the same anyway, so it ended up being a waste of time. And even if
+# I did end up using different values, this is not a good way to represent it.
+#
+# So don't follow my bad example here!
 item_types = DataStore('ItemType', (
   ('id', str),
   ('char', str),
@@ -272,6 +314,10 @@ class ItemTypeReader(CSVReader):
     for line in super().read():
       yield line[:3] + [line[3:]]
 
+# Another data store with a special reader. In this file, the first column is
+# the key ID, and all the remaining columns are BearLibTerminal event
+# identifiers that map to that "key." So for the Rogue Basement key "UP", we
+# want it to fire whenever we get TK_UP, TK_K, or TK_KP_8.
 key_bindings = DataStore('KeyBinding', (
   ('id', str),
   ('keys', _key_list)
@@ -283,6 +329,9 @@ class KeyBindingsReader(CSVReader):
       yield [line[0], line[1:]]
 
 
+# Load all the values from the files, dumping any previously stored data. This
+# is how you'd go about implementing a settings screen where you can change the
+# key bindings, or live-edit your monster data to tune the game.
 def reload():
   terrain_types.unload()
   entity_names.unload()
@@ -306,12 +355,19 @@ reload()
 ### assorted code constants ###
 
 
+# A simple reverse mapping of the key_bindings data store. It's a map of
+# terminal.TK_BLAH: "Key ID".
+#
+# >>> BINDINGS_BY_KEY[terminal.TK_KP_8]
+# "UP"
 BINDINGS_BY_KEY = {}
 for binding in key_bindings.items:
   for key in binding.keys:
     BINDINGS_BY_KEY[key] = binding.id
 
 
+# For the directional keys, it's really nice to be able to just map a key
+# to a vector and add it to the player's position to get the next move.
 KEYS_TO_DIRECTIONS = {
   'U': Point(0, -1),
   'D': Point(0, 1),
