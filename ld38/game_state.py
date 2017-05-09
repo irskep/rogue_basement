@@ -11,7 +11,7 @@ class GameState:
   def __init__(self):
     self.turn_number = 0
     self.level_states_by_id = {}
-
+    self.score = 0
     self.active_id = self.add_level().uuid
 
   @property
@@ -19,6 +19,6 @@ class GameState:
     return self.level_states_by_id[self.active_id]
 
   def add_level(self):
-    level_state = LevelState(generate_dungeon(LEVEL_SIZE))
+    level_state = LevelState(generate_dungeon(LEVEL_SIZE), self)
     self.level_states_by_id[level_state.uuid] = level_state
     return level_state

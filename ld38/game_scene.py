@@ -134,7 +134,7 @@ class GameMainScene(GameAppearanceScene):
     level_state = self.game_state.level
     cell = level_state.tilemap.cell(event.entity.position)
     if cell.feature == EnumFeature.STAIRS_DOWN:
-      self.director.push_scene(WinScene(level_state.score))
+      self.director.push_scene(WinScene(self.gamestate.score))
 
     if cell.annotations & {'transition-1-2', 'transition-2-3', 'transition-3-4'}:
       self.n_track_player.set_active_track(None)
@@ -176,7 +176,7 @@ class GameMainScene(GameAppearanceScene):
 
     if event.entity == self.game_state.level.player:
       if DEBUG_PROFILE: pr.dump_stats('profile')
-      self.director.push_scene(LoseScene(self.game_state.level.score))
+      self.director.push_scene(LoseScene(self.game_state.score))
 
   def on_entity_picked_up_item(self, event):
     if self.game_state.level.get_can_player_see(event.entity.position):

@@ -94,7 +94,7 @@ class StatsView(View):
     self.health_label.text = "  Health: {}  ".format(
       self.game_state.level.player.state['hp'])
     self.score_label.text = "Score: {}".format(
-      self.game_state.level.score)
+      self.game_state.score)
 
   def draw(self, ctx):
     ctx.color('#ffffff')

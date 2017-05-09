@@ -102,11 +102,10 @@ def action_pickup_item(level_state, entity):
   except KeyError:
     return False
 
-  # HACK: count score during pickup
   golds = [item for item in items if item.item_type.id == 'GOLD']
 
   if entity == level_state.player and golds:
-    level_state.score += len(golds)
+    level_state.game_state.score += len(golds)
     level_state.fire(EnumEventNames.score_increased, data=None, entity=None)
 
   items = [item for item in items if item.item_type.id != 'GOLD']

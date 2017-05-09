@@ -1,3 +1,4 @@
+import weakref
 from collections import deque
 from uuid import uuid4
 
@@ -18,9 +19,8 @@ from .const import (
 
 
 class LevelState:
-  def __init__(self, tilemap):
-    # HACK: score stored on level instead of game
-    self.score = 0
+  def __init__(self, tilemap, game_state):
+    self._game_state = weakref.ref(game_state)
     self.tilemap = tilemap
     self.uuid = uuid4().hex
     self.entities = []
@@ -46,6 +46,10 @@ class LevelState:
 
     self.level_memory_cache = set()
     self.update_los_cache()
+
+  @property
+  def game_state(self):
+    return self._game_state()
 
   def update_los_cache(self):
     self.los_cache = get_visible_points(self.player.position, self.get_can_see)
