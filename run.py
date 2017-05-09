@@ -10,10 +10,9 @@ from clubsandwich.blt.nice_terminal import terminal
 from clubsandwich.director import DirectorLoop
 from clubsandwich.geom import Size
 
-# A "scene" is an object that takes over the input and display. We have one
-# for the title screen and one for the game.
+# A "scene" is an object that takes over the input and display. The first one
+# the player sees is the title screen.
 from ld38.main_menu_scene import MainMenuScene
-from ld38.game_scene import GameMainScene
 
 # This is a pathlib.Path object pointing to the game working directory
 # containing the executable (and the assets)
@@ -42,6 +41,9 @@ class GameLoop(DirectorLoop):
     # The first scene is the main menu scene. It's a standard, boring
     # clubsandwich UI scene, so you don't need to bother reading the code
     # unless you want to know how the layout is done.
+    #
+    # The main thing to know is that when you select "Descend the stairs,"
+    # then a GameMainScene() becomes active.
     return MainMenuScene()
 
 
