@@ -7,6 +7,13 @@ from uuid import uuid4
 from clubsandwich.geom import Size, Point
 from clubsandwich.tilemap import TileMap
 
+from .actions import (
+  action_attack,
+  action_monster_move,
+  action_pickup_item,
+  action_player_move,
+  action_throw,
+)
 from .level_generator import generate_dungeon
 from .const import (
   EnumEventNames,
@@ -63,23 +70,23 @@ class KeyboardMovementBehavior(Behavior):
     ])
 
   def on_key_u(self, event):
-    self.level_state.action_player_move(self.entity, self.entity.position + Point(0, -1))
+    action_player_move(self.level_state, self.entity, self.entity.position + Point(0, -1))
   def on_key_d(self, event):
-    self.level_state.action_player_move(self.entity, self.entity.position + Point(0, 1))
+    action_player_move(self.level_state, self.entity, self.entity.position + Point(0, 1))
   def on_key_l(self, event):
-    self.level_state.action_player_move(self.entity, self.entity.position + Point(-1, 0))
+    action_player_move(self.level_state, self.entity, self.entity.position + Point(-1, 0))
   def on_key_r(self, event):
-    self.level_state.action_player_move(self.entity, self.entity.position + Point(1, 0))
+    action_player_move(self.level_state, self.entity, self.entity.position + Point(1, 0))
   def on_key_ul(self, event):
-    self.level_state.action_player_move(self.entity, self.entity.position + Point(-1, -1))
+    action_player_move(self.level_state, self.entity, self.entity.position + Point(-1, -1))
   def on_key_ur(self, event):
-    self.level_state.action_player_move(self.entity, self.entity.position + Point(1, -1))
+    action_player_move(self.level_state, self.entity, self.entity.position + Point(1, -1))
   def on_key_dl(self, event):
-    self.level_state.action_player_move(self.entity, self.entity.position + Point(-1, 1))
+    action_player_move(self.level_state, self.entity, self.entity.position + Point(-1, 1))
   def on_key_dr(self, event):
-    self.level_state.action_player_move(self.entity, self.entity.position + Point(1, 1))
+    action_player_move(self.level_state, self.entity, self.entity.position + Point(1, 1))
   def on_key_get(self, event):
-    self.level_state.action_pickup_item(self.entity)
+    action_pickup_item(self.level_state, self.entity)
 
 
 class CompositeBehavior(Behavior):
@@ -153,7 +160,7 @@ class RandomWalkBehavior(StandardEnemyBehavior):
     possibilities = self.level_state.get_passable_neighbors(self.entity)
     if not possibilities:
       return False
-    self.level_state.action_monster_move(self.entity, random.choice(possibilities))
+    action_monster_move(self.level_state, self.entity, random.choice(possibilities))
     return True
 
 
@@ -167,13 +174,13 @@ class PickUpRocksBehavior(StandardEnemyBehavior):
 
     for i in self.level_state.get_items_at(self.entity.position):
       if i.item_type.id == 'ROCK':
-        self.level_state.action_pickup_item(self.entity)
+        action_pickup_item(self.level_state, self.entity)
         return True
 
     for p in possibilities:
       for i in self.level_state.get_items_at(p):
         if i.item_type.id == 'ROCK':
-          self.level_state.action_monster_move(self.entity, p)
+          action_monster_move(self.level_state, self.entity, p)
           return True
     return False
 
@@ -192,7 +199,7 @@ class BeelineBehavior(StandardEnemyBehavior):
     self.entity.mode = EnumMonsterMode.CHASING
 
     point = self.level_state.player.position.get_closest_point(candidates)
-    self.level_state.action_monster_move(self.entity, point)
+    action_monster_move(self.level_state, self.entity, point)
     return True
 
 
@@ -214,12 +221,12 @@ class Range5VisibleBehavior(StandardEnemyBehavior):
 
     if dist < self.best_range - 1:
       self.entity.mode = EnumMonsterMode.FLEEING
-      self.level_state.action_monster_move(
+      action_monster_move(self.level_state,
         self.entity, self.level_state.player.position.get_farthest_point(candidates))
       return True
     elif dist > self.best_range:
       self.entity.mode = EnumMonsterMode.CHASING
-      self.level_state.action_monster_move(
+      action_monster_move(self.level_state,
         self.entity, self.level_state.player.position.get_closest_point(candidates))
       return True
     else:
@@ -256,7 +263,7 @@ class ThrowRockSlowBehavior(StandardEnemyBehavior):
         return False
 
       self.entity.behavior_state['throw_rock_cooldown'] = 6
-      self.level_state.action_throw(
+      action_throw(self.level_state,
         self.entity, item, self.level_state.player.position, self.rock_speed)
 
 
@@ -284,9 +291,9 @@ class PathUntilHitBehavior(StandardEnemyBehavior):
     entity_to_hit = self.level_state.get_entity_at(next_point)
     if entity_to_hit:
       p = entity_to_hit.position
-      self.level_state.action_attack(self.entity, entity_to_hit)
+      action_attack(self.level_state, self.entity, entity_to_hit)
     elif self.level_state.get_is_terrain_passable(next_point):
-      self.level_state.action_monster_move(self.entity, next_point)
+      action_monster_move(self.level_state, self.entity, next_point)
       return True
 
     self.level_state.drop_item(self.entity.inventory.pop(0), p, entity=self.entity)
@@ -294,4 +301,3 @@ class PathUntilHitBehavior(StandardEnemyBehavior):
 
     self.on_player_took_action(event, iterations_left - 1)
     return True
-    

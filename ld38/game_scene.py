@@ -4,6 +4,7 @@ from clubsandwich.ui import (
   UIScene,
 )
 
+from .actions import action_throw, action_close
 from .draw_game import draw_game
 from .gamestate import GameState
 from .logger import Logger
@@ -228,7 +229,8 @@ class GameThrowScene(GameModalInputScene):
     delta = KEYS_TO_DIRECTIONS[k]
 
     item = level_state.player.inventory[0]
-    did_throw = level_state.action_throw(
+    did_throw = action_throw(
+      level_state,
       level_state.player, item, level_state.player.position + delta * 1000, 2)
     if did_throw:
       self.logger.log(simple_declarative_sentence('PLAYER', verbs.THROW, 'ROCK'))
@@ -251,7 +253,7 @@ class GameCloseScene(GameModalInputScene):
       return
 
     delta = KEYS_TO_DIRECTIONS[k]
-    if level_state.action_close(level_state.player, level_state.player.position + delta):
+    if action_close(level_state, level_state.player, level_state.player.position + delta):
       self.logger.log("You closed the door.")
     else:
       self.logger.log("There is no door there.")
