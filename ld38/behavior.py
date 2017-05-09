@@ -9,9 +9,8 @@ from clubsandwich.tilemap import TileMap
 
 from .actions import (
   action_attack,
-  action_monster_move,
   action_pickup_item,
-  action_player_move,
+  action_move,
   action_throw,
 )
 from .level_generator import generate_dungeon
@@ -70,21 +69,21 @@ class KeyboardMovementBehavior(Behavior):
     ])
 
   def on_key_u(self, event):
-    action_player_move(self.level_state, self.entity, self.entity.position + Point(0, -1))
+    action_move(self.level_state, self.entity, self.entity.position + Point(0, -1))
   def on_key_d(self, event):
-    action_player_move(self.level_state, self.entity, self.entity.position + Point(0, 1))
+    action_move(self.level_state, self.entity, self.entity.position + Point(0, 1))
   def on_key_l(self, event):
-    action_player_move(self.level_state, self.entity, self.entity.position + Point(-1, 0))
+    action_move(self.level_state, self.entity, self.entity.position + Point(-1, 0))
   def on_key_r(self, event):
-    action_player_move(self.level_state, self.entity, self.entity.position + Point(1, 0))
+    action_move(self.level_state, self.entity, self.entity.position + Point(1, 0))
   def on_key_ul(self, event):
-    action_player_move(self.level_state, self.entity, self.entity.position + Point(-1, -1))
+    action_move(self.level_state, self.entity, self.entity.position + Point(-1, -1))
   def on_key_ur(self, event):
-    action_player_move(self.level_state, self.entity, self.entity.position + Point(1, -1))
+    action_move(self.level_state, self.entity, self.entity.position + Point(1, -1))
   def on_key_dl(self, event):
-    action_player_move(self.level_state, self.entity, self.entity.position + Point(-1, 1))
+    action_move(self.level_state, self.entity, self.entity.position + Point(-1, 1))
   def on_key_dr(self, event):
-    action_player_move(self.level_state, self.entity, self.entity.position + Point(1, 1))
+    action_move(self.level_state, self.entity, self.entity.position + Point(1, 1))
   def on_key_get(self, event):
     action_pickup_item(self.level_state, self.entity)
 
@@ -160,7 +159,7 @@ class RandomWalkBehavior(StandardEnemyBehavior):
     possibilities = self.level_state.get_passable_neighbors(self.entity)
     if not possibilities:
       return False
-    action_monster_move(self.level_state, self.entity, random.choice(possibilities))
+    action_move(self.level_state, self.entity, random.choice(possibilities))
     return True
 
 
@@ -180,7 +179,7 @@ class PickUpRocksBehavior(StandardEnemyBehavior):
     for p in possibilities:
       for i in self.level_state.get_items_at(p):
         if i.item_type.id == 'ROCK':
-          action_monster_move(self.level_state, self.entity, p)
+          action_move(self.level_state, self.entity, p)
           return True
     return False
 
@@ -199,7 +198,7 @@ class BeelineBehavior(StandardEnemyBehavior):
     self.entity.mode = EnumMonsterMode.CHASING
 
     point = self.level_state.player.position.get_closest_point(candidates)
-    action_monster_move(self.level_state, self.entity, point)
+    action_move(self.level_state, self.entity, point)
     return True
 
 
@@ -221,12 +220,12 @@ class Range5VisibleBehavior(StandardEnemyBehavior):
 
     if dist < self.best_range - 1:
       self.entity.mode = EnumMonsterMode.FLEEING
-      action_monster_move(self.level_state,
+      action_move(self.level_state,
         self.entity, self.level_state.player.position.get_farthest_point(candidates))
       return True
     elif dist > self.best_range:
       self.entity.mode = EnumMonsterMode.CHASING
-      action_monster_move(self.level_state,
+      action_move(self.level_state,
         self.entity, self.level_state.player.position.get_closest_point(candidates))
       return True
     else:
@@ -293,7 +292,7 @@ class PathUntilHitBehavior(StandardEnemyBehavior):
       p = entity_to_hit.position
       action_attack(self.level_state, self.entity, entity_to_hit)
     elif self.level_state.get_is_terrain_passable(next_point):
-      action_monster_move(self.level_state, self.entity, next_point)
+      action_move(self.level_state, self.entity, next_point)
       return True
 
     self.level_state.drop_item(self.entity.inventory.pop(0), p, entity=self.entity)

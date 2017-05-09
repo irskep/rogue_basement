@@ -45,58 +45,41 @@ def action_throw(level_state, entity, item, target_position, speed):
     level_state.fire_player_took_action_if_alive(entity.position)
   return True
 
-def action_player_move(level_state, entity, position):
+def action_move(level_state, entity, position):
   cell = level_state.tilemap.cell(position)
 
   target_entity = level_state.get_entity_at(position)
   if target_entity:
-    action_attack(level_state, entity, target_entity)
-    level_state.fire_player_took_action_if_alive(position)
-    level_state.update_los_cache()
-    return True
+    if entity.is_player:
+      action_attack(level_state, entity, target_entity)
+      level_state.fire_player_took_action_if_alive(position)
+      level_state.update_los_cache()
+      return True
+    else:
+      if target_entity == level_state.player:
+        action_attack(level_state, entity, target_entity)
+        return True
+      else:
+        return False  # it's another monster
 
   if level_state.get_can_move(entity, position):
     del level_state.entity_by_position[entity.position]
     entity.position = position
     level_state.entity_by_position[position] = entity
     level_state.fire(EnumEventNames.entity_moved, data=entity, entity=entity)
-    level_state.fire_player_took_action_if_alive(position)
-    level_state.update_los_cache()
+    if entity.is_player:
+      level_state.fire_player_took_action_if_alive(position)
+      level_state.update_los_cache()
     return True
   elif cell.terrain == terrain_types.DOOR_CLOSED and level_state.get_can_open_door(entity):
     action_open_door(level_state, entity, position)
-    level_state.fire_player_took_action_if_alive(position)
-    level_state.update_los_cache()
+    if entity.is_player:
+      level_state.fire_player_took_action_if_alive(position)
+      level_state.update_los_cache()
     return True
   else:
-    level_state.fire(EnumEventNames.entity_bumped, data=cell, entity=entity)
-    return False
-
-def action_monster_move(level_state, entity, position):
-  cell = level_state.tilemap.cell(position)
-
-  target_entity = level_state.get_entity_at(position)
-  if target_entity:
-    if target_entity == level_state.player:
-      action_attack(level_state, entity, target_entity)
-      return True
-    else:
-      return False  # it's another monster
-
-  if level_state.get_can_move(entity, position):
-    try:
-      del level_state.entity_by_position[entity.position]
-    except KeyError:
-      import pudb; pu.db()
-    entity.position = position
-    level_state.entity_by_position[position] = entity
-    level_state.fire(EnumEventNames.entity_moved, data=entity, entity=entity)
-    return True
-  elif cell.terrain == terrain_types.DOOR_CLOSED and level_state.get_can_open_door(entity):
-    action_open_door(level_state, entity, position)
-    return True
-  else:
-    return False
+    if entity.is_player:
+      level_state.fire(EnumEventNames.entity_bumped, data=cell, entity=entity)
 
 def action_attack(level_state, a, b):
   level_state.fire(EnumEventNames.entity_attacking, data=b, entity=a)
@@ -145,6 +128,3 @@ def action_open_door(level_state, entity, position):
   cell = level_state.tilemap.cell(position)
   cell.terrain = terrain_types.DOOR_OPEN
   level_state.fire(EnumEventNames.door_open, data=cell, entity=entity)
-
-def action_die(level_state):
-  level_state.fire(EnumEventNames.entity_died, data=None, entity=level_state.player)
