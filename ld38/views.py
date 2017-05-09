@@ -36,7 +36,7 @@ class GameView(View):
     ctx.bkcolor('#000000')
     ctx.clear_area(self.bounds)
 
-    current_player_position = self.game_state.active_level_state.player.position  
+    current_player_position = self.game_state.level.player.position  
     if current_player_position is not None:
       self.last_known_player_position = current_player_position
     half_size = (self.bounds.size / 2).floored
@@ -85,16 +85,16 @@ class StatsView(View):
 
   def update(self):
     self.progress_bar.fraction = (
-      self.game_state.active_level_state.player.state['hp'] /
-      self.game_state.active_level_state.player.stats['hp_max'])
+      self.game_state.level.player.state['hp'] /
+      self.game_state.level.player.stats['hp_max'])
     self.inventory_count.text = "  Rocks: {}  ".format(
-      len(self.game_state.active_level_state.player.inventory))
+      len(self.game_state.level.player.inventory))
     # HACK: extra padding so the label clears its background properly when it
     # shrinks
     self.health_label.text = "  Health: {}  ".format(
-      self.game_state.active_level_state.player.state['hp'])
+      self.game_state.level.player.state['hp'])
     self.score_label.text = "Score: {}".format(
-      self.game_state.active_level_state.score)
+      self.game_state.level.score)
 
   def draw(self, ctx):
     ctx.color('#ffffff')

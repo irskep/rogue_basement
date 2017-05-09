@@ -15,7 +15,7 @@ class GameState:
     self.active_id = self.add_level().uuid
 
   @property
-  def active_level_state(self):
+  def level(self):
     return self.level_states_by_id[self.active_id]
 
   def add_level(self):

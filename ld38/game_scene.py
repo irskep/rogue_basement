@@ -89,7 +89,7 @@ class GameAppearanceScene(UIScene):
 
     super().terminal_update(is_active)
     self.n_track_player.step()
-    self.game_state.active_level_state.consume_events()
+    self.game_state.level.consume_events()
     self.logger.update_log()
 
     if DEBUG_PROFILE: pr.disable()
@@ -98,7 +98,7 @@ class GameAppearanceScene(UIScene):
 class GameModalInputScene(GameAppearanceScene):
   """Scene that looks like the main game but is waiting for specific input"""
   def terminal_read(self, val):
-    level_state = self.game_state.active_level_state
+    level_state = self.game_state.level
 
     if val not in BINDINGS_BY_KEY:
       return
@@ -115,7 +115,7 @@ class GameMainScene(GameAppearanceScene):
     super().__init__(GameState(), *args, **kwargs)
     self.n_track_player.reset()
 
-    level_state = self.game_state.active_level_state
+    level_state = self.game_state.level
     level_state.dispatcher.add_subscriber(self, EnumEventNames.door_open, level_state.player)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_bumped, level_state.player)
     level_state.dispatcher.add_subscriber(self, EnumEventNames.entity_moved, level_state.player)
@@ -131,7 +131,7 @@ class GameMainScene(GameAppearanceScene):
     if DEBUG_PROFILE: pr.dump_stats('profile')
 
   def on_entity_moved(self, event):
-    level_state = self.game_state.active_level_state
+    level_state = self.game_state.level
     cell = level_state.tilemap.cell(event.entity.position)
     if cell.feature == EnumFeature.STAIRS_DOWN:
       self.director.push_scene(WinScene(level_state.score))
@@ -174,12 +174,12 @@ class GameMainScene(GameAppearanceScene):
     self.logger.log(simple_declarative_sentence(
       event.entity.monster_type.id, verb=verbs.DIE))
 
-    if event.entity == self.game_state.active_level_state.player:
+    if event.entity == self.game_state.level.player:
       if DEBUG_PROFILE: pr.dump_stats('profile')
-      self.director.push_scene(LoseScene(self.game_state.active_level_state.score))
+      self.director.push_scene(LoseScene(self.game_state.level.score))
 
   def on_entity_picked_up_item(self, event):
-    if self.game_state.active_level_state.get_can_player_see(event.entity.position):
+    if self.game_state.level.get_can_player_see(event.entity.position):
       self.logger.log(simple_declarative_sentence(
         event.entity.monster_type.id,
         verbs.PICKUP,
@@ -201,7 +201,7 @@ class GameMainScene(GameAppearanceScene):
     self.handle_key(key)
 
   def handle_key(self, k):
-    level_state = self.game_state.active_level_state
+    level_state = self.game_state.level
     if k in KEYS_TO_DIRECTIONS:
       point = level_state.player.position + KEYS_TO_DIRECTIONS[k]
       action_move(level_state, level_state.player, point)
@@ -226,7 +226,7 @@ class GameThrowScene(GameModalInputScene):
     self.logger.log("Throw in what direction?")
 
   def handle_key(self, k):
-    level_state = self.game_state.active_level_state
+    level_state = self.game_state.level
     if k == 'CANCEL':
       return
 
@@ -252,7 +252,7 @@ class GameCloseScene(GameModalInputScene):
     self.logger.log("Close door in what direction?")
 
   def handle_key(self, k):
-    level_state = self.game_state.active_level_state
+    level_state = self.game_state.level
     if k == 'CANCEL':
       return
 
