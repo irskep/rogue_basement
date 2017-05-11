@@ -1,3 +1,6 @@
+# "Behaviors" specify how the monsters move.
+# The companion to this file is actions.py, which is a bunch of helper
+# functions for behaviors.
 import random
 import weakref
 from collections import deque
