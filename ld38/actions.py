@@ -1,3 +1,10 @@
+# This file contains helper functions for behaviors. They all take at least
+# a LevelState and an entity.
+#
+# These used to all be methods on LevelState, but in general it's a bad idea
+# to have a class that grows new methods that quickly. Better to have functions
+# that operate on the class, which you can separate into different namespaces
+# later.
 from clubsandwich.tilemap import CellOutOfBoundsError
 
 from .const import (
@@ -6,7 +13,11 @@ from .const import (
   monster_types,
 )
 
+
 def action_close(level_state, entity, position):
+  """
+  Have the entity close the door at the given cell
+  """
   try:
     cell = level_state.tilemap.cell(position)
   except CellOutOfBoundsError:
@@ -14,11 +25,25 @@ def action_close(level_state, entity, position):
   if cell.terrain != terrain_types.DOOR_OPEN:
     return False
   cell.terrain = terrain_types.DOOR_CLOSED
-  level_state.fire_player_took_action_if_alive(position)
+  if entity.is_player:
+    level_state.fire_player_took_action_if_alive(position)
+  # Player may now be able to see less, so update FoV
   level_state.update_los_cache()
   return True
 
+
 def action_throw(level_state, entity, item, target_position, speed):
+  """
+  Have the entity throw an item at a specific position. "Speed" is number of
+  moves per turn for the item in flight to take.
+
+  When an item is thrown, an entity is created with monster type
+  [ITEM_ID]_IN_FLIGHT. So for ROCK, you get a ROCK_IN_FLIGHT. As a long-term
+  design this isn't great because you have to specify every throwable item in
+  two places. But then again, the throwing mechanic in Rogue Basement where
+  thrown items move one tile per turn is generally weird, so I'm not too
+  worried about you trying to copy this...
+  """
   path = list(entity.position.points_bresenham_to(target_position))
   while level_state.get_entity_at(path[0]) == entity:
     path.pop(0)
