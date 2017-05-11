@@ -21,6 +21,10 @@ from .const import (
 from .entity import Item
 
 
+# This is a simple decorator that collects classes by name.
+# For example, if you put ``@behavior('bloop')`` above a class, and then in
+# monsters.csv you put "bloop" in the behavior column of a monster, it will
+# act according to the class.
 BEHAVIORS_BY_ID = {}
 def behavior(behavior_id):
   def dec(cls):
@@ -29,12 +33,14 @@ def behavior(behavior_id):
   return dec
 
 
+# Behaviors are just event listeners with entities and levels attached! When an
+# event fires, the dispatcher calls the appropriate method, and the behavior
+# can do whatever it wants with Entity + LevelState.
 class Behavior:
   def __init__(self, entity, level_state, event_names):
     self.event_names = event_names
     self._entity = weakref.ref(entity)
     self._level_state = weakref.ref(level_state)
-    self.is_local_to_entity = False
 
   @property
   def entity(self):
@@ -46,13 +52,24 @@ class Behavior:
 
   def add_to_event_dispatcher(self, dispatcher):
     for name in self.event_names:
-      dispatcher.add_subscriber(self, name, self.entity if self.is_local_to_entity else None)
+      # Subscribe to events for all entities.
+      # This is a pretty "meh" design decision and the biggest shortcoming of
+      # the behavior system.
+      dispatcher.add_subscriber(self, name, None)
 
   def remove_from_event_dispatcher(self, dispatcher):
     for name in self.event_names:
-      dispatcher.remove_subscriber(self, name, self.entity if self.is_local_to_entity else None)
+      dispatcher.remove_subscriber(self, name, None)
 
 
+# There is a significant shortcoming in the event handling system: if you want
+# one event to prevent others from firing, you basically can't! Or if you want
+# several handlers to try to "match" an event, one after the other. For
+# example, "If I can see the player, move toward them. Otherwise move randoly."
+#
+# That logic could be written in a single behavior, but it's more powerful to
+# solve the problem generally. CompositeBehavior has a list of behaviors, and
+# for each event, it calls its sub-behaviors in order until one returns True.
 class CompositeBehavior(Behavior):
   def __init__(self, entity, level_state, sub_behaviors):
     self.sub_behaviors = sub_behaviors
@@ -78,6 +95,7 @@ class CompositeBehavior(Behavior):
     return handler
 
 
+# Superclass for behaviors that simply respond to the player's movements
 class StandardEnemyBehavior(Behavior):
   def __init__(self, entity, level_state):
     super().__init__(entity, level_state, [EnumEventNames.player_took_action])
@@ -90,6 +108,7 @@ class SleepBehavior(StandardEnemyBehavior):
     return True
 
 
+# When an enemy is hit, it cannot move for 2 turns.
 @behavior('stunnable')
 class StunnableBehavior(Behavior):
   def __init__(self, entity, level_state):
@@ -98,12 +117,17 @@ class StunnableBehavior(Behavior):
       EnumEventNames.player_took_action,
     ])
 
+  # When this entity is attacked, go into the "stunned" state and start the
+  # cooldown.
+  # Other behaviors do not need to worry about the STUNNED state, because this
+  # behavior pre-empts them by returning True if the entity is stunned.
   def on_entity_attacked(self, event):
     if event.entity is not self.entity:
       return False
     self.entity.behavior_state['stun_cooldown'] = 2
     self.entity.mode = EnumMonsterMode.STUNNED
 
+  # Decrease the cooldown when the player moves.
   def on_player_took_action(self, event):
     cooldown = self.entity.behavior_state.get('stun_cooldown', 0)
     if cooldown:
@@ -149,8 +173,13 @@ class PickUpRocksBehavior(StandardEnemyBehavior):
     return False
 
 
+# If there is a clear line of sight to the player, move into the neighboring
+# cell closest to them.
+#
+# Distance is measured in "manhattan distance," which does not count diagonals!
+# This is technically suboptimal, but in this game I erred on the side of
+# making the game easier.
 @behavior('beeline_visible')
-@behavior('beeline_target')  # temporary
 class BeelineBehavior(StandardEnemyBehavior):
   def on_player_took_action(self, event):
     if not self.level_state.test_line_of_sight(self.entity, self.level_state.player):
@@ -167,6 +196,8 @@ class BeelineBehavior(StandardEnemyBehavior):
     return True
 
 
+# Stay precisely 5 tiles away from the player. Great for ranged enemies! Not
+# the smartest possible AI, but decent for Ludum Dare...
 @behavior('range_5_visible')
 class Range5VisibleBehavior(StandardEnemyBehavior):
   def __init__(self, *args, **kwargs):
@@ -174,15 +205,19 @@ class Range5VisibleBehavior(StandardEnemyBehavior):
     self.best_range = 5
 
   def on_player_took_action(self, event):
-    if not self.level_state.test_line_of_sight(self.entity, self.level_state.player):
+    if not self.level_state.test_line_of_sight(
+        self.entity, self.level_state.player):
       return False
 
     candidates = self.level_state.get_passable_neighbors(self.entity)
     if not candidates:
       return False
 
-    dist = self.entity.position.manhattan_distance_to(self.level_state.player.position)
+    dist = self.entity.position.manhattan_distance_to(
+      self.level_state.player.position)
 
+    # Because manhattan distance does not map to our actual possible moves,
+    # allow for a one-tile margin
     if dist < self.best_range - 1:
       self.entity.mode = EnumMonsterMode.FLEEING
       action_move(self.level_state,
@@ -197,6 +232,8 @@ class Range5VisibleBehavior(StandardEnemyBehavior):
       return False  # probably cascade to some kind of ranged attack
 
 
+# Same as previous but with 7 tiles instead of 5, to make it harder, or at
+# least different.
 @behavior('range_7_visible')
 class Range7VisibleBehavior(Range5VisibleBehavior):
   def __init__(self, *args, **kwargs):
@@ -204,6 +241,15 @@ class Range7VisibleBehavior(Range5VisibleBehavior):
     self.best_range = 7
 
 
+# If the player is visible, throw a rock at them!
+#
+# At this point we've defined the complete AI for wibbles:
+#
+# * If stunned, wait for cooldown
+# * If player is visible and we are not X tiles away from them, move toward
+#   that goal
+# * If player is visible and we are X tiles away from them, throw a rock
+# * If player cannot be seen, sleep
 @behavior('throw_rock_slow')
 class ThrowRockSlowBehavior(StandardEnemyBehavior):
   def __init__(self, *args, **kwargs):
@@ -231,6 +277,9 @@ class ThrowRockSlowBehavior(StandardEnemyBehavior):
         self.entity, item, self.level_state.player.position, self.rock_speed)
 
 
+# Thrown rocks are entities! This behavior moves them along a predetermined
+# set of points (computed when the rock was thrown) until they it the end of
+# their path, or they are attacked. 
 @behavior('path_until_hit')
 class PathUntilHitBehavior(StandardEnemyBehavior):
   def on_player_took_action(self, event, iterations_left=None):

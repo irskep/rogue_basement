@@ -2,8 +2,8 @@ id,Char,Color,Difficulty,Chance,Behaviors,hp_max,strength,items
 player,@,ffffff,-1,0.00,,100,5.00,
 verp_1,v,ffff00,0.00,1.00,stunnable|beeline_visible|random_walk,10,2.00,
 verp_2,v,ff8800,1.00,1.00,stunnable|beeline_visible|random_walk,20,4.00,
-verp_3,v,ff0000,2.00,1.00,stunnable|beeline_target|random_walk,30,8.00,
-verp_4,v,aa0044,3.00,1.00,stunnable|beeline_target|random_walk,40,16.00,
+verp_3,v,ff0000,2.00,1.00,stunnable|beeline_visible|random_walk,30,8.00,
+verp_4,v,aa0044,3.00,1.00,stunnable|beeline_visible|random_walk,40,16.00,
 wibble,w,#90582c,0.00,20,stunnable|pick_up_rocks|range_5_visible|throw_rock_slow|sleep,10,2,rockx1
 wibble_2,w,#a0582c,1.00,1,stunnable|pick_up_rocks|range_5_visible|throw_rock_slow|sleep,12,10,rockx1
 wibble_3,w,#f0582c,2.00,1,stunnable|pick_up_rocks|range_5_visible|throw_rock_slow|sleep,14,30,rockx1
