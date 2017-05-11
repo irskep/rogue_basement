@@ -18,7 +18,6 @@ def action_close(level_state, entity, position):
   level_state.update_los_cache()
   return True
 
-# TODO: log this event!
 def action_throw(level_state, entity, item, target_position, speed):
   path = list(entity.position.points_bresenham_to(target_position))
   while level_state.get_entity_at(path[0]) == entity:

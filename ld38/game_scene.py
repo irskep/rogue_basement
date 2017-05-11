@@ -344,13 +344,7 @@ class GameMainScene(GameAppearanceScene):
 
     key = BINDINGS_BY_KEY[val]
 
-    # This is a minor hack. We want the log to clear out when you press a
-    # key, but the logger object ignores update_log() when there are no
-    # messages. So use a space character instead.
-    #
-    # In hindsight this is a silly workaround. But it does work.
-    self.logger.log(' ')
-    self.logger.update_log()
+    self.logger.clear()
 
     self.handle_key(key)
 

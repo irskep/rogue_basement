@@ -11,25 +11,13 @@ from clubsandwich.ui import (
 from .draw_game import draw_game
 
 
-class ProgressBarView(View):
-  def __init__(self, fraction, color_fg='#0088ff', color_bg='#000000', *args, **kwargs):
-    self.fraction = fraction
-    self.color_fg = color_fg
-    self.color_bg = color_bg
-    super().__init__(*args, **kwargs)
-
-  def draw(self, ctx):
-    ctx.bkcolor(self.color_bg)
-    ctx.clear_area(self.bounds)
-    frac_width = floor(self.bounds.width * self.fraction)
-    ctx.bkcolor(self.color_fg)
-    ctx.clear_area(self.bounds.with_size(Size(frac_width, self.bounds.height)))
-
-
+# Thin wrapper around draw_game() for the clubsandwich UI framework
 class GameView(View):
   def __init__(self, game_state, *args, **kwargs):
     self.game_state = game_state
     super().__init__(*args, **kwargs)
+    # When the player dies, they are removed from the map, so remember their
+    # last known position instead of pulling it off the entity every frame.
     self.last_known_player_position = Point(0, 0)
 
   def draw(self, ctx):
@@ -46,6 +34,21 @@ class GameView(View):
         self.last_known_player_position - half_size,
         self.bounds.size),
       ctx=ctx)
+
+
+class ProgressBarView(View):
+  def __init__(self, fraction, color_fg='#0088ff', color_bg='#000000', *args, **kwargs):
+    self.fraction = fraction
+    self.color_fg = color_fg
+    self.color_bg = color_bg
+    super().__init__(*args, **kwargs)
+
+  def draw(self, ctx):
+    ctx.bkcolor(self.color_bg)
+    ctx.clear_area(self.bounds)
+    frac_width = floor(self.bounds.width * self.fraction)
+    ctx.bkcolor(self.color_fg)
+    ctx.clear_area(self.bounds.with_size(Size(frac_width, self.bounds.height)))
 
 
 class StatsView(View):
