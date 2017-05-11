@@ -22,16 +22,12 @@ C_MONSTER_STUNNED = '#0088ff'
 
 def draw_game(game_state, bounds, ctx):
   level_state = game_state.level
-  entity_cache = {}
-  for entity in level_state.entities:
-    if entity.position and bounds.contains(entity.position):
-      entity_cache[entity.position] = entity
 
   with ctx.translate(bounds.origin * -1):
-    _draw_game(game_state, bounds, ctx, entity_cache)
+    _draw_game(game_state, bounds, ctx)
 
 
-def _draw_game(game_state, bounds, ctx, entity_cache):
+def _draw_game(game_state, bounds, ctx):
   level_state = game_state.level
 
   pointscache_color = None
@@ -59,7 +55,8 @@ def _draw_game(game_state, bounds, ctx, entity_cache):
       char = ' '
       if level_state.get_can_player_remember(point):
         cell = level_state.tilemap[point]
-        (char, color) = get_char_and_color(level_state, entity_cache, cell)
+        (char, color) = get_char_and_color(
+          level_state, level_state.entity_by_position, cell)
 
       if pointscache_values and (pointscache_color == color or char == ' '):
           pointscache_values.append(char)

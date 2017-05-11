@@ -1,11 +1,23 @@
+# Because Python is a reference counted language, it's important not to create
+# reference cycles! Weakref is used to hold a reference to the parent
+# GameState object.
 import weakref
+# Everything that happens is associated with an event. The event processing
+# system keeps events to be processed in a queue.
 from collections import deque
+# Levels assign their own arbitrary unique IDs.
 from uuid import uuid4
 
+# You should really go read the docs on this:
+# http://steveasleep.com/clubsandwich/api_event_dispatcher.html
 from clubsandwich.event_dispatcher import EventDispatcher
+# "Better to ask forgiveness than beg for permission" - LevelState's approach
+# to querying cell data
 from clubsandwich.tilemap import CellOutOfBoundsError
+# Implementation of recursive shadowcasting for FoV
 from clubsandwich.line_of_sight import get_visible_points
 
+# The rest of the imports will be explained later.
 from .entity import Entity, Item
 from .behavior import (
   CompositeBehavior,
@@ -18,39 +30,59 @@ from .const import (
 )
 
 
+# LevelState stores all information related to a single map and its
+# inhabitants. It also handles the event loop.
 class LevelState:
   def __init__(self, tilemap, game_state):
+    # Things that don't change
     self._game_state = weakref.ref(game_state)
     self.tilemap = tilemap
     self.uuid = uuid4().hex
-    self.entities = []
+
+    # Things that do change
     self.event_queue = deque()
     self.entity_by_position = {}
     self.items_by_position = {}
     self._is_applying_events = False
 
+    # This is the object that remembers who wants to know about what, and what
+    # methods to call when things do happen.
     self.dispatcher = EventDispatcher()
+    # We have to tell the dispatcher what all the possible events are before we
+    # fire them. This makes typos easy to catch.
     for name in EnumEventNames:
       self.dispatcher.register_event_type(name)
 
+    # Player is special, create them explicitly
     self.player = None
     self.player = self.create_entity(
       monster_types.PLAYER,
       self.tilemap.points_of_interest['stairs_up'])
 
+    # The level generator has helpfully told us where all the items should go.
+    # Just follow its directions.
     for item_data in self.tilemap.points_of_interest['items']:
       self.drop_item(Item(item_data.item_type), item_data.position)
 
+    # The level generator also told us about all the monsters. How nice!
     for monster_data in self.tilemap.points_of_interest['monsters']:
       self.create_entity(monster_data.monster_type, monster_data.position)
 
+    # There are two sets of points: points the player can see right now
+    # (self.los_cache), and points the player has seen in the past
+    # (self.level_memory_cache). self.update_los_cache() keeps both up to date.
     self.level_memory_cache = set()
     self.update_los_cache()
 
+  # Expose the GameState weakref as a property for convenience
   @property
   def game_state(self):
     return self._game_state()
 
+  # FoV/line of sight can be a big deal in roguelikes, but it's really easy to
+  # compute using clubsandwich, so I won't spend much time explaining this.
+  # Just know that get_visible_points() returns a set of points that can be
+  # seen from the given vantage point.
   def update_los_cache(self):
     self.los_cache = get_visible_points(self.player.position, self.get_can_see)
     self.level_memory_cache.update(self.los_cache)
@@ -90,7 +122,6 @@ class LevelState:
     return entity
 
   def add_entity(self, entity):
-    self.entities.append(entity)
     # Behaviors are just buckets of event handlers attached to entities. They
     # know how to subscribe themselves to dispatchers.
     for behavior in entity.behaviors:
@@ -100,7 +131,6 @@ class LevelState:
       self.entity_by_position[entity.position] = entity
 
   def remove_entity(self, entity):
-    self.entities.remove(entity)
     # Unsubscribe behaviors from dispatcher
     for behavior in entity.behaviors:
       behavior.remove_from_event_dispatcher(self.dispatcher)
