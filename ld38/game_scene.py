@@ -258,7 +258,7 @@ class GameMainScene(GameAppearanceScene):
     # exactly like the losing dialog, except it says "you win" instead of
     # "you lose." How satisfying!
     if cell.feature == EnumFeature.STAIRS_DOWN:
-      self.director.push_scene(WinScene(self.gamestate.score))
+      self.director.push_scene(WinScene(self.game_state.score))
 
     # "Annotations" are just little notes left to us by the level generator.
     # These annotations in particular mean "this cell is part of a corridor

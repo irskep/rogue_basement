@@ -281,39 +281,39 @@ class ThrowRockSlowBehavior(StandardEnemyBehavior):
 
 
 # Thrown rocks are entities! This behavior moves them along a predetermined
-# set of points (computed when the rock was thrown) until they it the end of
+# set of points (computed when the rock was thrown) until they hit the end of
 # their path, or they are attacked. 
 @behavior('path_until_hit')
 class PathUntilHitBehavior(StandardEnemyBehavior):
-  def on_player_took_action(self, event, iterations_left=None):
-    if iterations_left is None:
-      iterations_left = self.entity.behavior_state['speed']
-    iterations_left -= 1
-    if iterations_left < 0:
-      return False
-    # the item to drop at the end must be the entity's only inventory item.
-
-    p = self.entity.position
-    if not self.entity.behavior_state.get('path', None):
-      self.level_state.drop_item(self.entity.inventory.pop(0), p, entity=self.entity)
-      self.level_state.remove_entity(self.entity)
-      return True
-
-    next_point = self.entity.behavior_state['path'].pop(0)
-    if next_point is None:
-      # this is basically a "wait" instruction
-      return True
-
-    entity_to_hit = self.level_state.get_entity_at(next_point)
-    if entity_to_hit:
-      p = entity_to_hit.position
-      action_attack(self.level_state, self.entity, entity_to_hit)
-    elif self.level_state.get_is_terrain_passable(next_point):
-      action_move(self.level_state, self.entity, next_point)
-      return True
-
-    self.level_state.drop_item(self.entity.inventory.pop(0), p, entity=self.entity)
+  def _drop(self, point):
+    # The pathing entity is assumed to be carrying exactly one inventory item:
+    # the item that was thrown.
+    self.level_state.drop_item(self.entity.inventory.pop(0), point, entity=self.entity)
     self.level_state.remove_entity(self.entity)
 
-    self.on_player_took_action(event, iterations_left - 1)
+  def _move_one(self):
+    p = self.entity.position
+    path = self.entity.behavior_state.get('path', None)
+    if path:
+      next_point = path.pop(0)
+      if next_point is None:
+        # See hack in actions.action_throw; this is a special case for the first
+        # point. Basically a "wait" instruction.
+        return True
+      else:
+        entity_to_hit = self.level_state.get_entity_at(next_point)
+        if entity_to_hit:
+          action_attack(self.level_state, self.entity, entity_to_hit)
+          self._drop(next_point)
+        elif self.level_state.get_is_terrain_passable(next_point):
+          action_move(self.level_state, self.entity, next_point)
+          return True
+    else:
+      # If no remaining points, drop
+      self._drop(self.entity.position)
+      return True
+
+  def on_player_took_action(self, event):
+    for _ in range(self.entity.behavior_state['speed']):
+      self._move_one()
     return True
