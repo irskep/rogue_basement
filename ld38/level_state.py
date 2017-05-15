@@ -186,9 +186,10 @@ class LevelState:
   # monster moves in response to this event, but if the player is dead, they
   # are not on the map, and all kinds of stuff breaks. Easier to just not fire
   # it if the player is dead.
-  def fire_player_took_action_if_alive(self, position):
+  def fire_player_took_action_if_alive(self, position=None):
     if self.player.position is None:
       return
+    position = position or self.player.position
     self.fire(EnumEventNames.player_took_action, data=position, entity=None)
 
   # The functions in actions.py call these methods to do what they do.

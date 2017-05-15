@@ -21,7 +21,7 @@ C_STAIRS_DOWN = '#ffff00'
 C_TRANSITION_1_2 = '#00ff00'
 C_TRANSITION_2_3 = '#00ff88'
 C_TRANSITION_3_4 = '#00ffff'
-C_MONSTER_STUNNED = '#0088ff
+C_MONSTER_STUNNED = '#0088ff'
 
 
 def draw_game(game_state, bounds, ctx):
@@ -133,6 +133,10 @@ def get_char_and_color(level_state, cell):
     color = level_state.tilemap.get_room(cell.point).room_type.color
   # For walls, the level generator left us some hints about how to draw. This
   # is one of the primary purposes of the cell.annotations property.
+  #
+  # A better system for this might be to define terrain "characteristics" and
+  # check for those instead of directly checking for terrain values. Then it
+  # would be trivial to add new types of walls for flavor.
   if cell.terrain == terrain_types.WALL:
     if 'horz' in cell.annotations:
       char = line_chars['T']

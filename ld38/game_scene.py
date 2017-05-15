@@ -273,6 +273,7 @@ class GameMainScene(GameAppearanceScene):
       # to implement this as a cell Feature instead of this annotation, but eh,
       # at this point it's not worth fixing.
       level_state.player.state['hp'] = level_state.player.stats['hp_max']
+      self.logger.log("The glowing corridor restores you to health.")
       # Whenever we update player state, we have to manually update the stats
       # view. Not really the best workflow; the stats view ought to update
       # itself every frame! But again, eh, whatever, it works.
@@ -361,7 +362,7 @@ class GameMainScene(GameAppearanceScene):
       # The easiest implementation of "wait" is to just fire the event that
       # says "the player did something, you can move now" without the player
       # having actually done anything.
-      level_state.fire(EnumEventNames.player_took_action)
+      level_state.fire_player_took_action_if_alive()
     elif k == 'CLOSE':
       # Now it's time to push one of those fancy modal-input scenes I've talked
       # so much about!
